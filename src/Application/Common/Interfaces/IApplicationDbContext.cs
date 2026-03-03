@@ -8,5 +8,6 @@ public interface IApplicationDbContext
     DbSet<Manager> Managers { get; }
     DbSet<Domain.Entities.Account> Accounts { get; }
     DbSet<Domain.Entities.Transaction> Transactions { get; }
+    DbSet<UserSession> UserSessions { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
