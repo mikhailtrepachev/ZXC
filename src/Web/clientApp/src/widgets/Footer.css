@@ -1,0 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap");
+
+.footer {
+  background-color: #2a1b3d;
+  color: #fff;
+  font-size: 1.6rem;
+  font-family:
+    "Manrope",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    sans-serif;
+
+  padding: 7rem 5rem;
+}
+
+.footer-top {
+  margin-bottom: 3rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 35rem;
+  margin-bottom: 4rem;
+}
+
+.footer-links-title {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.footer-list {
+  list-style: none;
+}
+
+.footer-list li {
+  margin-bottom: 0.8rem;
+}
+
+.footer-list li a:link,
+.footer-list li a:visited {
+  text-decoration: none;
+  color: #ccc;
+}
+
+.footer-list li a:active,
+.footer-list li a:hover {
+  color: #824fc5;
+}
+
+.footer-copyright {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-copyright {
+  color: #bbb;
+}
+
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-socials a:link,
+.footer-socials a:visited {
+  text-decoration: none;
+  color: #bbb;
+}
+
+.footer-socials a:active,
+.footer-socials a:hover {
+  color: #824fc5;
+}

@@ -14,37 +14,37 @@ export default function CreateAccountPage() {
     setSuccess("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Hesla se neshodují.");
       return;
     }
 
     const response = await fetch("/api/Users/register", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email,
-        password
-      })
+        password,
+      }),
     });
 
     if (!response.ok) {
-      setError("Registration failed");
+      setError("Registrace se nezdařila.");
       return;
     }
 
-    setSuccess("Account created successfully");
+    setSuccess("Účet byl úspěšně vytvořen.");
   };
 
   return (
     <div className="register-container">
       <div className="register-card">
-        <h2>Create Account</h2>
+        <h2>Vytvoření účtu</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label>Email</label>
+            <label>E-mail</label>
             <input
               type="email"
               required
@@ -54,7 +54,7 @@ export default function CreateAccountPage() {
           </div>
 
           <div className="input-group">
-            <label>Password</label>
+            <label>Heslo</label>
             <input
               type="password"
               required
@@ -64,7 +64,7 @@ export default function CreateAccountPage() {
           </div>
 
           <div className="input-group">
-            <label>Confirm Password</label>
+            <label>Potvrzení hesla</label>
             <input
               type="password"
               required
@@ -73,14 +73,14 @@ export default function CreateAccountPage() {
             />
           </div>
 
-          <button type="submit">Register</button>
+          <button type="submit">Registrovat</button>
         </form>
-            <p className="switch-link">
-            Already have an account?{" "}
-            <span onClick={() => (window.location.href = "/login")}>
-                Back to login
-            </span>
-            </p>
+
+        <p className="switch-link">
+          Už máte účet?{" "}
+          <span onClick={() => (window.location.href = "/login")}>Zpět na přihlášení</span>
+        </p>
+
         {error && <p className="error-text">{error}</p>}
         {success && <p className="success-text">{success}</p>}
       </div>

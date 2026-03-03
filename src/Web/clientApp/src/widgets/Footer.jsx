@@ -5,55 +5,55 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-top">
         <h1 className="footer-logo">ZXC Bank</h1>
-        <p>Your trusted partner in managing money and payments.</p>
+        <p>Spolehlivý partner pro správu vašich financí a plateb.</p>
       </div>
 
       <div className="footer-links">
         <div>
-          <p className="footer-links-title">Products</p>
+          <p className="footer-links-title">Produkty</p>
           <ul className="footer-list">
             <li>
-              <a href="/">Checking Accounts</a>
+              <a href="/">Běžné účty</a>
             </li>
             <li>
-              <a href="/">Savings Accounts</a>
+              <a href="/">Spořicí účty</a>
             </li>
             <li>
-              <a href="/">Credit Cards</a>
+              <a href="/">Kreditní karty</a>
             </li>
             <li>
-              <a href="/">Loans</a>
+              <a href="/">Úvěry</a>
             </li>
           </ul>
         </div>
         <div>
-          <p className="footer-links-title">Company</p>
+          <p className="footer-links-title">Společnost</p>
           <ul className="footer-list">
             <li>
-              <a href="/">About Us</a>
+              <a href="/">O nás</a>
             </li>
             <li>
-              <a href="/">Contact</a>
+              <a href="/">Kontakt</a>
             </li>
             <li>
-              <a href="/">Careers</a>
+              <a href="/">Kariéra</a>
             </li>
             <li>
-              <a href="/">Help Center</a>
+              <a href="/">Centrum nápovědy</a>
             </li>
           </ul>
         </div>
         <div>
-          <p className="footer-links-title">Legal</p>
+          <p className="footer-links-title">Právní informace</p>
           <ul className="footer-list">
             <li>
-              <a href="/">Privacy Policy</a>
+              <a href="/">Ochrana osobních údajů</a>
             </li>
             <li>
-              <a href="/">Terms of Service</a>
+              <a href="/">Obchodní podmínky</a>
             </li>
             <li>
-              <a href="/">Security</a>
+              <a href="/">Bezpečnost</a>
             </li>
           </ul>
         </div>
@@ -61,8 +61,8 @@ export default function Footer() {
 
       <div className="footer-copyright">
         <p>
-          &copy; 2026 ZXC Bank. All rights reserved. ZXC Bank is a registered
-          financial institution. Services are subject to terms and conditions.
+          &copy; 2026 ZXC Bank. Všechna práva vyhrazena. ZXC Bank je registrovaná
+          finanční instituce. Služby podléhají obchodním podmínkám.
         </p>
         <div className="footer-socials">
           <a href="https://www.facebook.com/">
