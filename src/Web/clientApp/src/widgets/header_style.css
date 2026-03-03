@@ -226,6 +226,115 @@
   position: relative;
 }
 
+.site-header__notifications {
+  position: relative;
+}
+
+.site-header__notificationButton {
+  position: relative;
+}
+
+.site-header__notificationBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f43f5e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.site-header__notificationsDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(360px, 88vw);
+  padding: 10px;
+  border-radius: var(--header-radius);
+  border: 1px solid var(--header-line);
+  background: linear-gradient(135deg, rgba(33, 26, 66, 0.98), rgba(44, 34, 86, 0.98));
+  box-shadow: var(--header-shadow);
+  z-index: 60;
+}
+
+.site-header__notificationsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--header-text);
+  font-size: 14px;
+}
+
+.site-header__notificationsAction {
+  border: 0;
+  background: transparent;
+  color: #d8b4fe;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.site-header__notificationsAction:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.site-header__notificationsState {
+  margin: 0;
+  padding: 8px 6px;
+  color: var(--header-muted);
+  font-size: 13px;
+}
+
+.site-header__notificationsState--error {
+  color: #fecaca;
+}
+
+.site-header__notificationsList {
+  display: grid;
+  gap: 6px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.site-header__notificationItem {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--header-text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+
+.site-header__notificationItem:hover {
+  border-color: var(--header-line);
+  background: var(--header-surface);
+}
+
+.site-header__notificationItem.is-unread {
+  border-color: rgba(216, 180, 254, 0.5);
+  background: rgba(216, 180, 254, 0.1);
+}
+
+.site-header__notificationItem small {
+  color: var(--header-muted);
+  font-size: 11px;
+}
+
 .site-header__userDropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -373,7 +482,8 @@
   }
 
   .site-header__actions > .site-header__button,
-  .site-header__actions > .site-header__userMenu {
+  .site-header__actions > .site-header__userMenu,
+  .site-header__actions > .site-header__notifications {
     display: none;
   }
 
