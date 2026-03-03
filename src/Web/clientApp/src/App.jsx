@@ -8,7 +8,10 @@ import LoansPage from "./pages/LoansPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import Header from "./widgets/Header.jsx";
 import Footer from "./widgets/Footer.jsx";
-import { clearSession, isAuthenticated as checkAuthentication } from "./auth/session";
+import {
+  clearSession,
+  isAuthenticated as checkAuthentication,
+} from "./auth/session";
 
 function ProtectedRoute({ children }) {
   const [isChecking, setIsChecking] = useState(true);
@@ -69,14 +72,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/loans"
-          element={
-            <ProtectedRoute>
-              <LoansPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/loans" element={<LoansPage />} />
 
         <Route
           path="/payments"
