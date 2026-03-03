@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAccessToken } from "../auth/session";
+import { getAccessToken, logoutUser } from "../auth/session";
 import "./header_style.css";
 
 const CATEGORIES = [
@@ -48,6 +48,7 @@ export default function Header() {
   const [activeCategory, setActiveCategory] = useState("private");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -77,6 +78,7 @@ export default function Header() {
         if (!response.ok) {
           if (isMounted) {
             setCurrentUser("");
+            setIsAuthorized(false);
           }
           return;
         }
@@ -86,10 +88,12 @@ export default function Header() {
 
         if (isMounted) {
           setCurrentUser(userLabel);
+          setIsAuthorized(true);
         }
       } catch {
         if (isMounted) {
           setCurrentUser("");
+          setIsAuthorized(false);
         }
       }
     }
@@ -102,6 +106,14 @@ export default function Header() {
   }, []);
 
   const cabinetLabel = currentUser ? currentUser : "Internetové bankovnictví";
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser("");
+    setIsAuthorized(false);
+    setMobileOpen(false);
+    window.location.href = "/login";
+  };
 
   return (
     <header className="site-header">
@@ -198,21 +210,32 @@ export default function Header() {
               <SearchIcon />
             </button>
 
-            <button
-              className="site-header__button site-header__button--ghost"
-              type="button"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Přihlásit se
-            </button>
-
-            <button
-              className="site-header__button site-header__button--primary"
-              type="button"
-              onClick={() => (window.location.href = "/register")}
-            >
-              Otevřít účet
-            </button>
+            {isAuthorized ? (
+              <button
+                className="site-header__button site-header__button--primary"
+                type="button"
+                onClick={handleLogout}
+              >
+                Odhlásit se
+              </button>
+            ) : (
+              <>
+                <button
+                  className="site-header__button site-header__button--ghost"
+                  type="button"
+                  onClick={() => (window.location.href = "/login")}
+                >
+                  Přihlásit se
+                </button>
+                <button
+                  className="site-header__button site-header__button--primary"
+                  type="button"
+                  onClick={() => (window.location.href = "/register")}
+                >
+                  Otevřít účet
+                </button>
+              </>
+            )}
 
             <button
               className="site-header__burger"
@@ -284,20 +307,32 @@ export default function Header() {
           </div>
 
           <div className="mobile-menu__cta">
-            <button
-              className="site-header__button site-header__button--ghost"
-              type="button"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Přihlásit se
-            </button>
-            <button
-              className="site-header__button site-header__button--primary"
-              type="button"
-              onClick={() => (window.location.href = "/register")}
-            >
-              Otevřít účet
-            </button>
+            {isAuthorized ? (
+              <button
+                className="site-header__button site-header__button--primary"
+                type="button"
+                onClick={handleLogout}
+              >
+                Odhlásit se
+              </button>
+            ) : (
+              <>
+                <button
+                  className="site-header__button site-header__button--ghost"
+                  type="button"
+                  onClick={() => (window.location.href = "/login")}
+                >
+                  Přihlásit se
+                </button>
+                <button
+                  className="site-header__button site-header__button--primary"
+                  type="button"
+                  onClick={() => (window.location.href = "/register")}
+                >
+                  Otevřít účet
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

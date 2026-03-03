@@ -48,3 +48,24 @@ export async function isAuthenticated() {
     return false;
   }
 }
+
+export async function logoutUser() {
+  const token = getAccessToken();
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    await fetch("/api/Users/logout", {
+      method: "POST",
+      credentials: "include",
+      headers,
+    });
+  } catch {
+    // Ignore network errors here; local session is still cleared below.
+  } finally {
+    clearSession();
+  }
+}
