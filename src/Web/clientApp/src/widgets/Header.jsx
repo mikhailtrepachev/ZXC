@@ -1,19 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAccessToken, logoutUser } from "../auth/session";
 import "./header_style.css";
-
-const CATEGORIES = [
-  { id: "private", label: "Pro občany", href: "#private" },
-  { id: "business", label: "Pro podnikatele", href: "#business" },
-  { id: "premium", label: "Premium", href: "#premium" },
-];
-
-const MORE_MENU = [
-  { label: "Podpora", href: "#support" },
-  { label: "Pobočky a bankomaty", href: "#atm" },
-  { label: "Kontakty", href: "#contacts" },
-];
 
 const NAV = [
   { label: "Účty", href: "/accounts" },
@@ -45,10 +33,11 @@ function resolveUserLabel(payload) {
 }
 
 export default function Header() {
-  const [activeCategory, setActiveCategory] = useState("private");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -105,6 +94,27 @@ export default function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!userMenuRef.current?.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
   const cabinetLabel = currentUser ? currentUser : "Internetové bankovnictví";
 
   const handleLogout = async () => {
@@ -112,53 +122,18 @@ export default function Header() {
     setCurrentUser("");
     setIsAuthorized(false);
     setMobileOpen(false);
+    setUserMenuOpen(false);
     window.location.href = "/login";
+  };
+
+  const handleUserSettings = () => {
+    setUserMenuOpen(false);
+    window.location.href = "/accounts";
   };
 
   return (
     <header className="site-header">
       <div className="site-header__container">
-        <div className="site-header__top">
-          <nav className="site-header__categories" aria-label="Kategorie">
-            <ul className="site-header__categoriesList">
-              {CATEGORIES.map((category) => (
-                <li key={category.id} className="site-header__categoriesItem">
-                  <a
-                    className={`site-header__categoryLink ${
-                      activeCategory === category.id ? "is-active" : ""
-                    }`}
-                    href={category.href}
-                    onClick={() => setActiveCategory(category.id)}
-                  >
-                    {category.label}
-                  </a>
-                </li>
-              ))}
-
-              <li className="site-header__categoriesItem">
-                <details className="site-header__more">
-                  <summary className="site-header__categoryLink site-header__moreSummary">
-                    Více <ChevronDown />
-                  </summary>
-
-                  <div className="site-header__moreDropdown">
-                    {MORE_MENU.map((item) => (
-                      <a key={item.href} className="site-header__moreLink" href={item.href}>
-                        {item.label}
-                      </a>
-                    ))}
-                  </div>
-                </details>
-              </li>
-            </ul>
-          </nav>
-
-          <Link className="site-header__cabinet" to="/accounts" aria-label="Internetové bankovnictví">
-            <span className="site-header__cabinetText">{cabinetLabel}</span>
-            <UserIcon />
-          </Link>
-        </div>
-
         <div className="site-header__main">
           <Link className="site-header__logo" to="/accounts" aria-label="Domů">
             <span className="site-header__logoMark" aria-hidden="true">
@@ -206,18 +181,30 @@ export default function Header() {
           </nav>
 
           <div className="site-header__actions">
-            <button className="site-header__iconButton" type="button" aria-label="Hledat">
-              <SearchIcon />
-            </button>
-
             {isAuthorized ? (
-              <button
-                className="site-header__button site-header__button--primary"
-                type="button"
-                onClick={handleLogout}
-              >
-                Odhlásit se
-              </button>
+              <div className="site-header__userMenu" ref={userMenuRef}>
+                <button
+                  className="site-header__cabinet site-header__cabinetButton"
+                  type="button"
+                  onClick={() => setUserMenuOpen((value) => !value)}
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                >
+                  <span className="site-header__cabinetText">{cabinetLabel}</span>
+                  <UserIcon />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="site-header__userDropdown" role="menu">
+                    <button className="site-header__userDropdownButton" type="button" onClick={handleUserSettings}>
+                      Nastavení uživatele
+                    </button>
+                    <button className="site-header__userDropdownButton" type="button" onClick={handleLogout}>
+                      Odhlásit se
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <button
@@ -340,19 +327,6 @@ export default function Header() {
   );
 }
 
-function SearchIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function ChevronDown() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -405,3 +379,5 @@ function CloseIcon() {
     </svg>
   );
 }
+
+

@@ -168,6 +168,50 @@
     border-color: rgba(255, 255, 255, 0.12);
 }
 
+.site-header__cabinetButton {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.06);
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.site-header__userMenu {
+    position: relative;
+}
+
+.site-header__userDropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    padding: 8px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: linear-gradient(135deg, rgba(33, 26, 66, 0.98), rgba(44, 34, 86, 0.98));
+    box-shadow: var(--shadow);
+    z-index: 60;
+    display: grid;
+    gap: 6px;
+}
+
+.site-header__userDropdownButton {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align: left;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.site-header__userDropdownButton:hover {
+    background: var(--surface);
+}
+
 /* ===== MAIN ===== */
 .site-header__main {
     display: flex;
