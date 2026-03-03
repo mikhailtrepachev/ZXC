@@ -57,7 +57,7 @@ public static class DependencyInjection
         builder.Services.AddTransient<IIdentityService, IdentityService>();
 
         builder.Services.AddTransient<JwtTokenGenerator>();
-        builder.Services.AddTransient<IPasswordHasher<Card>, PasswordHasher<Card>>();
+        builder.Services.AddTransient<IPasswordHasher<ZxcBank.Domain.Entities.Card>, PasswordHasher<ZxcBank.Domain.Entities.Card>>();
 
         builder.Services.AddAuthentication(options =>
             {

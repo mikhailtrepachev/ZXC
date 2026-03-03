@@ -27,19 +27,23 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
 
         // 1. Находим счет ОТПРАВИТЕЛЯ (того, кто залогинен)
         // Для хакатона берем первый попавшийся счет юзера
-        var senderId = _currentUser.Id; 
+        string? senderId = _currentUser.Id; 
         if (senderId == null) throw new UnauthorizedAccessException();
 
-        var senderAccount = await _context.Accounts
+        ZxcBank.Domain.Entities.Account? senderAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.OwnerId == senderId, cancellationToken);
-
+        
         if (senderAccount == null) throw new Exception("У вас нет счета для списания");
+
+        if (senderAccount.IsFrozen) throw new Exception("Your account is frozen. Please contact support.");
 
         // 2. Находим счет ПОЛУЧАТЕЛЯ по номеру
         var receiverAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.AccountNumber == request.ToAccountNumber, cancellationToken);
 
         if (receiverAccount == null) throw new Exception("Счет получателя не найден");
+        
+        if (receiverAccount.IsFrozen) throw new Exception("This account is frozen. Please contact support.");
 
         // 3. Проверка: Нельзя переводить самому себе (опционально)
         if (senderAccount.Id == receiverAccount.Id) 
@@ -58,7 +62,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
         receiverAccount.Balance += request.Amount;
 
         // Записываем в историю
-        var transaction = new Transaction
+        Transaction transaction = new Transaction
         {
             FromAccountId = senderAccount.AccountNumber,
             ToAccountId = receiverAccount.AccountNumber,

@@ -18,6 +18,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
 
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Card> Cards => Set<Card>();
+    
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder builder)
