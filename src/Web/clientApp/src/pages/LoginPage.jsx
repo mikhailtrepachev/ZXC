@@ -60,7 +60,12 @@ export default function LoginPage() {
 
         <button type="submit">Login</button>
       </form>
-
+        <p className="switch-link">
+        Don’t have an account?{" "}
+        <span onClick={() => (window.location.href = "/register")}>
+            Create one
+        </span>
+        </p>
       {error && <p className="error-text">{error}</p>}
     </div>
   </div>

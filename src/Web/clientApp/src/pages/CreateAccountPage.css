@@ -1,23 +1,4 @@
-/* ===== ПАЛИТРА ИЗ РЕФЕРЕНСА =====
-#D83F87 — акцент (розовый)
-#2A1B3D — тёмный фон
-#44318D — фиолетовый
-#E98074 — мягкий акцент
-#A4B3B6 — светлый серо-голубой
-*/
-
-/* ===== RESET ===== */
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: "Inter", sans-serif;
-}
-
-/* ===== ФОН ===== */
-.login-container {
+.register-container {
   height: 100vh;
   display: flex;
   justify-content: center;
@@ -26,31 +7,27 @@ body {
   padding: 20px;
 }
 
-/* ===== КАРТОЧКА ===== */
-.login-card {
+.register-card {
   width: 420px;
   padding: 50px 45px;
   border-radius: 18px;
   background: #2A1B3D;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
   color: white;
-  animation: fadeIn 0.4s ease;
 }
 
-.login-card h2 {
-  margin: 0 0 35px;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 1px;
+.register-card h2 {
+  margin: 0 0 30px;
+  font-size: 26px;
   color: #E98074;
+  text-align: center;
   text-transform: uppercase;
 }
 
-/* ===== INPUT GROUP ===== */
 .input-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .input-group label {
@@ -58,10 +35,8 @@ body {
   margin-bottom: 8px;
   color: #A4B3B6;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
-/* ===== INPUT ===== */
 .input-group input {
   padding: 14px 16px;
   border-radius: 10px;
@@ -78,50 +53,36 @@ body {
   box-shadow: 0 0 0 3px rgba(216, 63, 135, 0.3);
 }
 
-/* ===== BUTTON ===== */
 button {
   width: 100%;
   padding: 14px;
-  margin-top: 15px;
+  margin-top: 10px;
   border-radius: 10px;
   border: none;
   background: #D83F87;
   color: white;
   font-weight: 600;
-  font-size: 14px;
   cursor: pointer;
   transition: 0.25s ease;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 button:hover {
   background: #E98074;
-  transform: translateY(-2px);
 }
 
-button:active {
-  transform: translateY(0);
-}
-
-/* ===== ERROR ===== */
 .error-text {
-  margin-top: 14px;
+  margin-top: 12px;
   font-size: 13px;
-  color: #E98074;
+  color: #ff6b6b;
   text-align: center;
 }
 
-/* ===== АНИМАЦИЯ ===== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.success-text {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #4ade80;
+  text-align: center;
 }
 
 .switch-link {
