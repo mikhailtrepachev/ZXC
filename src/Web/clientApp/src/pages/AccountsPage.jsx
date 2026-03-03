@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAccessToken } from "../auth/session";
+import { getAccessToken, resolveUserDisplayNameByEmail } from "../auth/session";
 import "./AccountsPage.css";
 
 const quickActions = [
@@ -159,13 +159,22 @@ export default function AccountsPage() {
   const [isCreatingCard, setIsCreatingCard] = useState(false);
   const [createCardError, setCreateCardError] = useState("");
 
+  const profileEmail = useMemo(() => {
+    if (!profile) {
+      return "";
+    }
+
+    return String(pick(profile, "email", "Email", "userName", "UserName") || "").trim();
+  }, [profile]);
+
   const fullName = useMemo(() => {
     if (!profile) {
       return "";
     }
 
-    return String(pick(profile, "fullName", "FullName", "email", "Email") || "").trim();
-  }, [profile]);
+    const fallbackLabel = String(pick(profile, "fullName", "FullName", "email", "Email") || "").trim();
+    return resolveUserDisplayNameByEmail(profileEmail, fallbackLabel);
+  }, [profile, profileEmail]);
 
   const transferLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
   const internetLimit = Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
@@ -350,7 +359,9 @@ export default function AccountsPage() {
                     <div className="account-card__icon">{card.isVirtual ? "V" : "K"}</div>
                     <div className="account-card__content">
                       <p className="account-card__balance">Karta {card.maskedNumber}</p>
-                      <p className="account-card__label">{card.holderName}</p>
+                      <p className="account-card__label">
+                        {resolveUserDisplayNameByEmail(profileEmail, card.holderName)}
+                      </p>
                       <p className="account-card__chip">
                         {card.isVirtual ? "Virtualni" : "Plastova"} - exp {card.expiryDate}
                       </p>

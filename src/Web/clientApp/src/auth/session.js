@@ -1,5 +1,6 @@
 const ACCESS_TOKEN_KEY = "zxc_access_token";
 const REFRESH_TOKEN_KEY = "zxc_refresh_token";
+const USER_PROFILES_KEY = "zxc_user_profiles";
 
 function decodeJwtPayload(token) {
   if (!token || typeof token !== "string") {
@@ -27,6 +28,71 @@ function decodeJwtPayload(token) {
 
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function readUserProfiles() {
+  try {
+    const raw = localStorage.getItem(USER_PROFILES_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeUserProfiles(map) {
+  localStorage.setItem(USER_PROFILES_KEY, JSON.stringify(map));
+}
+
+export function saveLocalUserProfile({ email, firstName, lastName }) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedFirstName = String(firstName || "").trim();
+  const normalizedLastName = String(lastName || "").trim();
+
+  if (!normalizedEmail || !normalizedFirstName || !normalizedLastName) {
+    return false;
+  }
+
+  const profiles = readUserProfiles();
+  profiles[normalizedEmail] = {
+    firstName: normalizedFirstName,
+    lastName: normalizedLastName,
+    fullName: `${normalizedFirstName} ${normalizedLastName}`.trim(),
+  };
+  writeUserProfiles(profiles);
+  return true;
+}
+
+export function getLocalUserProfile(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const profiles = readUserProfiles();
+  const value = profiles[normalizedEmail];
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value;
+}
+
+export function resolveUserDisplayNameByEmail(email, fallback = "") {
+  const profile = getLocalUserProfile(email);
+  if (profile?.fullName) {
+    return profile.fullName;
+  }
+
+  return String(fallback || "").trim();
 }
 
 export function clearSession() {
