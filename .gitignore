@@ -485,3 +485,12 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 .azure
+
+# JetBrains (Rider, IntelliJ, WebStorm)
+.idea/
+
+# VS Code / Dev Containers
+.devcontainer/
+
+# GitHub specific (если вы НЕ планируете хранить там экшены или настройки)
+# .github/
