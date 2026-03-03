@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getAccessToken, getLocalCardPin, resolveUserDisplayNameByEmail } from "../auth/session";
+import {
+  getAccessToken,
+  getCurrentUserFromToken,
+  getLocalCardPin,
+  resolveUserDisplayNameByEmail,
+} from "../auth/session";
 import "./CardDetailsPage.css";
 
 const tabs = [
@@ -258,6 +263,10 @@ export default function CardDetailsPage() {
           email = String(pick(profile, "email", "Email", "userName", "UserName") || "").trim();
         }
 
+        if (!email) {
+          email = String(getCurrentUserFromToken() || "").trim();
+        }
+
         if (isMounted) {
           setProfileEmail(email);
         }
@@ -424,7 +433,7 @@ export default function CardDetailsPage() {
           <div className="card-details-head">
             <h2>Detaily karty</h2>
             <button className="card-details-revealBtn" type="button" onClick={() => setIsPasswordModalOpen(true)}>
-              {isSensitiveVisible ? "Detaily otevreny" : "Pokazat detaily"}
+              {isSensitiveVisible ? "Детали открыты" : "Показать детали"}
             </button>
           </div>
 
