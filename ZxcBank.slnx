@@ -14,11 +14,4 @@
     <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/Web/Web.csproj" DefaultStartup="true" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Application.FunctionalTests/Application.FunctionalTests.csproj" />
-    <Project Path="tests/Application.UnitTests/Application.UnitTests.csproj" />
-    <Project Path="tests/Domain.UnitTests/Domain.UnitTests.csproj" />
-    <Project Path="tests/Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj" />
-    <!--#endif-->
-  </Folder>
 </Solution>
