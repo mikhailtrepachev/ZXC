@@ -9,4 +9,6 @@ public class Account : BaseAuditableEntity
     public decimal Balance { get; set; }
     
     public bool IsFrozen { get; set; }
+    
+    public IList<Card> Cards { get; private set; } = new List<Card>();
 }
