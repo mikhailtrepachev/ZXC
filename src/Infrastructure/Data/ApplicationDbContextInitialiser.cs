@@ -99,7 +99,12 @@ public class ApplicationDbContextInitialiser
             {
                 UserId = sender.Id,
                 DailyTransferLimit = 50000,
-                InternetPaymentLimit = 10000
+                InternetPaymentLimit = 10000,
+                FirstName = "Adrei",
+                LastName = "Dwwwww",
+                State = "Czech",
+                Street = "Na honech I 3904",
+                PhoneNumber = "+79161231247",
             };
 
             // Добавляем счет ВНУТРЬ клиента (Связывание)
@@ -164,7 +169,12 @@ public class ApplicationDbContextInitialiser
             {
                 UserId = receiver.Id,
                 DailyTransferLimit = 5000,
-                InternetPaymentLimit = 1000
+                InternetPaymentLimit = 1000,
+                FirstName = "Vadim",
+                LastName = "Zinoviev",
+                State = "Russia",
+                Street = "Lenina 15",
+                PhoneNumber = "+79161234567",
             };
 
             // Добавляем счет ВНУТРЬ клиента
