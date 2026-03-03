@@ -2,41 +2,72 @@ import { useState } from "react";
 import "./LoginPage.css";
 import { persistSession } from "../auth/session";
 
+async function extractApiError(response, fallback) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const payload = await response.json().catch(() => null);
+
+    if (typeof payload === "string" && payload.trim()) {
+      return payload;
+    }
+
+    if (payload?.detail) {
+      return payload.detail;
+    }
+
+    if (payload?.title) {
+      return payload.title;
+    }
+  }
+
+  const text = await response.text().catch(() => "");
+  return text?.trim() ? text : fallback;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
+    setIsSubmitting(true);
 
-    const response = await fetch("/api/Clients/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    });
+    try {
+      const response = await fetch("/api/Clients/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-    if (!response.ok) {
-      setError("Neplatný e-mail nebo heslo.");
-      return;
+      if (!response.ok) {
+        const apiError = await extractApiError(response, "Neplatny e-mail nebo heslo.");
+        setError(apiError);
+        return;
+      }
+
+      const payload = await response.text().catch(() => "");
+      persistSession(payload);
+      window.location.href = "/accounts";
+    } catch {
+      setError("Prihlaseni se nepodarilo. Zkuste to znovu.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const payload = await response.text().catch(() => "");
-    persistSession(payload);
-
-    window.location.href = "/accounts";
   };
 
   return (
     <div className="login-container">
       <div className="login-card">
-        <h2>Přihlášení</h2>
+        <h2>Prihlaseni</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
@@ -46,7 +77,7 @@ export default function LoginPage() {
               placeholder="uzivatel@email.cz"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
             />
           </div>
 
@@ -54,19 +85,20 @@ export default function LoginPage() {
             <label>Heslo</label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="********"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
           </div>
 
-          <button type="submit">Přihlásit se</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Prihlasuji..." : "Prihlasit se"}
+          </button>
         </form>
 
         <p className="switch-link">
-          Nemáte účet?{" "}
-          <span onClick={() => (window.location.href = "/register")}>Vytvořit účet</span>
+          Nemate ucet? <span onClick={() => (window.location.href = "/register")}>Vytvorit ucet</span>
         </p>
         {error && <p className="error-text">{error}</p>}
       </div>

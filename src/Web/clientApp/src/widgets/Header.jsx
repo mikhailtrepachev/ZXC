@@ -17,7 +17,16 @@ function resolveUserLabel(payload) {
     return "";
   }
 
-  const raw = payload.email || payload.userName || payload.username || payload.name || payload.fullName || "";
+  const raw =
+    payload.email ||
+    payload.Email ||
+    payload.userName ||
+    payload.UserName ||
+    payload.username ||
+    payload.name ||
+    payload.fullName ||
+    payload.FullName ||
+    "";
   if (typeof raw !== "string") {
     return "";
   }

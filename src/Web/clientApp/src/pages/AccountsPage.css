@@ -52,6 +52,10 @@
   margin-top: 2px;
 }
 
+.account-card--frozen {
+  border-color: rgba(255, 153, 153, 0.4);
+}
+
 .account-card__icon {
   width: 34px;
   height: 34px;
@@ -319,6 +323,31 @@
   opacity: 0.8;
 }
 
+.operations__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.operations__metric {
+  border: 1px solid var(--ab-line);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 8px;
+}
+
+.operations__metric p {
+  margin: 0;
+  color: var(--ab-muted);
+  font-size: 1.4rem;
+}
+
+.operations__metric strong {
+  font-size: 2rem;
+}
+
 .operations__tabs {
   display: flex;
   gap: 8px;
@@ -489,6 +518,10 @@
   }
 
   .cashback-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operations__metrics {
     grid-template-columns: 1fr;
   }
 }

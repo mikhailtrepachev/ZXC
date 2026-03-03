@@ -86,6 +86,20 @@ function parseJsonStorage(key, fallback) {
   }
 }
 
+function pick(obj, ...keys) {
+  if (!obj || typeof obj !== "object") {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) {
+      return obj[key];
+    }
+  }
+
+  return undefined;
+}
+
 function transactionIsIncome(type) {
   if (typeof type === "string") {
     return type.toLowerCase() === "income";
@@ -256,8 +270,20 @@ export default function CardsPage() {
       }
 
       const payload = await response.json().catch(() => null);
-      const numericBalance = Number(payload?.balance);
-      setBalance(Number.isFinite(numericBalance) ? numericBalance : null);
+      const rawAccounts = pick(payload, "accounts", "Accounts");
+      const list = Array.isArray(rawAccounts) ? rawAccounts : [];
+
+      if (list.length === 0) {
+        setBalance(null);
+        return;
+      }
+
+      const total = list.reduce((sum, account) => {
+        const value = Number(pick(account, "balance", "Balance"));
+        return Number.isFinite(value) ? sum + value : sum;
+      }, 0);
+
+      setBalance(Number.isFinite(total) ? total : null);
     } catch {
       setBalance(null);
     }

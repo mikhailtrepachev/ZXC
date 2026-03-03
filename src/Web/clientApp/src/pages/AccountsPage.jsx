@@ -1,19 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAccessToken } from "../auth/session";
 import "./AccountsPage.css";
 
-const accounts = [
-  { id: "czk", symbol: "Kc", balance: "0 Kc", label: "Bezny ucet", card: "••49" },
-  { id: "eur", symbol: "€", balance: "0 €", label: "Ucet v EUR" },
-  { id: "usd", symbol: "$", balance: "0 $", label: "Ucet v USD" },
-  { id: "invest", symbol: "⛁", balance: "0 Kc", label: "Investice" },
-];
-
 const quickActions = [
-  { id: "phone", title: "Platba na telefon", icon: "☎" },
-  { id: "iban", title: "Platba na ucet", icon: "▣" },
-  { id: "mobile", title: "Dobit kredit", icon: "◫" },
-  { id: "scan", title: "Naskenovat slozenku", icon: "⌁" },
+  { id: "phone", title: "Platba na telefon", icon: "T" },
+  { id: "iban", title: "Platba na ucet", icon: "U" },
+  { id: "mobile", title: "Dobit kredit", icon: "M" },
+  { id: "scan", title: "Naskenovat slozenku", icon: "S" },
 ];
 
 const cashbackCards = [
@@ -46,6 +39,20 @@ function getAuthHeaders(includeJson = false) {
   return headers;
 }
 
+function pick(obj, ...keys) {
+  if (!obj || typeof obj !== "object") {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) {
+      return obj[key];
+    }
+  }
+
+  return undefined;
+}
+
 async function readErrorMessage(response, fallbackMessage) {
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -66,18 +73,82 @@ async function readErrorMessage(response, fallbackMessage) {
   }
 
   const text = await response.text().catch(() => "");
-  if (!text?.trim()) {
-    return fallbackMessage;
-  }
-
-  if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+  if (!text?.trim() || text.includes("<!DOCTYPE") || text.includes("<html")) {
     return fallbackMessage;
   }
 
   return text;
 }
 
+function currencyCodeFromName(currencyName) {
+  const normalized = String(currencyName || "").toLowerCase();
+
+  if (normalized.includes("dollar") || normalized === "usd") {
+    return "USD";
+  }
+
+  if (normalized.includes("euro") || normalized === "eur") {
+    return "EUR";
+  }
+
+  return "CZK";
+}
+
+function formatMoney(value, currencyName) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return "--";
+  }
+
+  return new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: currencyCodeFromName(currencyName),
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function mapAccountForView(rawItem) {
+  const id = Number(pick(rawItem, "id", "Id")) || Math.random();
+  const accountNumber = String(pick(rawItem, "accountNumber", "AccountNumber") || "");
+  const balance = Number(pick(rawItem, "balance", "Balance")) || 0;
+  const currency = String(pick(rawItem, "currency", "Currency") || "Koruna");
+  const type = String(pick(rawItem, "type", "Type") || "Debet");
+  const isFrozen = Boolean(pick(rawItem, "isFrozen", "IsFrozen"));
+
+  const normalizedCurrency = currency.toLowerCase();
+  const symbol = normalizedCurrency.includes("euro")
+    ? "EUR"
+    : normalizedCurrency.includes("dollar")
+      ? "USD"
+      : "Kc";
+
+  const label =
+    type.toLowerCase() === "investment"
+      ? "Investicni ucet"
+      : normalizedCurrency.includes("euro")
+        ? "Ucet v EUR"
+        : normalizedCurrency.includes("dollar")
+          ? "Ucet v USD"
+          : "Bezny ucet";
+
+  const suffix = accountNumber ? accountNumber.slice(-4) : "";
+
+  return {
+    id,
+    symbol,
+    label,
+    balanceText: formatMoney(balance, currency),
+    chip: suffix ? `...${suffix}` : "",
+    isFrozen,
+  };
+}
+
 export default function AccountsPage() {
+  const [profile, setProfile] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+
   const [cards, setCards] = useState([]);
   const [isCardsLoading, setIsCardsLoading] = useState(true);
   const [cardsError, setCardsError] = useState("");
@@ -87,6 +158,51 @@ export default function AccountsPage() {
   const [pinCode, setPinCode] = useState("");
   const [isCreatingCard, setIsCreatingCard] = useState(false);
   const [createCardError, setCreateCardError] = useState("");
+
+  const fullName = useMemo(() => {
+    if (!profile) {
+      return "";
+    }
+
+    return String(pick(profile, "fullName", "FullName", "email", "Email") || "").trim();
+  }, [profile]);
+
+  const transferLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
+  const internetLimit = Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
+
+  const loadProfile = async () => {
+    setProfileError("");
+    setProfileLoading(true);
+
+    try {
+      const response = await fetch("/api/Accounts/info", {
+        method: "GET",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, "Nepodarilo se nacist profil uctu.");
+        setProfileError(message);
+        setProfile(null);
+        setAccounts([]);
+        return;
+      }
+
+      const payload = await response.json().catch(() => null);
+      const rawAccounts = pick(payload, "accounts", "Accounts");
+      const mappedAccounts = Array.isArray(rawAccounts) ? rawAccounts.map(mapAccountForView) : [];
+
+      setProfile(payload);
+      setAccounts(mappedAccounts);
+    } catch {
+      setProfileError("Nepodarilo se nacist profil uctu.");
+      setProfile(null);
+      setAccounts([]);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const loadCards = async () => {
     setCardsError("");
@@ -100,13 +216,9 @@ export default function AccountsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(
-          response,
-          "Nepodarilo se nacist karty."
-        );
+        const message = await readErrorMessage(response, "Nepodarilo se nacist karty.");
         setCardsError(message);
         setCards([]);
-        setIsCardsLoading(false);
         return;
       }
 
@@ -121,6 +233,7 @@ export default function AccountsPage() {
   };
 
   useEffect(() => {
+    loadProfile();
     loadCards();
   }, []);
 
@@ -144,7 +257,7 @@ export default function AccountsPage() {
 
   const handleCreateCard = async () => {
     if (!termsAccepted) {
-      setCreateCardError("Nejdrive potvrďte podminky.");
+      setCreateCardError("Nejdrive potvrdte podminky.");
       return;
     }
 
@@ -168,12 +281,8 @@ export default function AccountsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(
-          response,
-          "Nepodarilo se vytvorit kartu."
-        );
+        const message = await readErrorMessage(response, "Nepodarilo se vytvorit kartu.");
         setCreateCardError(message);
-        setIsCreatingCard(false);
         return;
       }
 
@@ -192,20 +301,28 @@ export default function AccountsPage() {
     <section className="accounts-page">
       <div className="accounts-shell">
         <aside className="accounts-sidebar">
-          <h1 className="accounts-title">Dobry den</h1>
+          <h1 className="accounts-title">{fullName ? `Dobry den, ${fullName}` : "Dobry den"}</h1>
 
-          <div className="accounts-list">
-            {accounts.map((item) => (
-              <article className="account-card" key={item.id}>
-                <div className="account-card__icon">{item.symbol}</div>
-                <div className="account-card__content">
-                  <p className="account-card__balance">{item.balance}</p>
-                  <p className="account-card__label">{item.label}</p>
-                  {item.card && <p className="account-card__chip">{item.card}</p>}
-                </div>
-              </article>
-            ))}
-          </div>
+          {profileLoading && <p className="cards-state">Nacitam ucty...</p>}
+          {!profileLoading && profileError && <p className="cards-state cards-state--error">{profileError}</p>}
+          {!profileLoading && !profileError && accounts.length === 0 && (
+            <p className="cards-state">K tomuto profilu zatim nejsou dostupne zadne ucty.</p>
+          )}
+
+          {!profileLoading && !profileError && accounts.length > 0 && (
+            <div className="accounts-list">
+              {accounts.map((item) => (
+                <article className={`account-card ${item.isFrozen ? "account-card--frozen" : ""}`} key={item.id}>
+                  <div className="account-card__icon">{item.symbol}</div>
+                  <div className="account-card__content">
+                    <p className="account-card__balance">{item.balanceText}</p>
+                    <p className="account-card__label">{item.label}</p>
+                    {item.chip && <p className="account-card__chip">{item.chip}</p>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
 
           <button className="credit-offer" type="button" onClick={openCreateCardModal}>
             <p className="credit-offer__title">Mate predschvalenou kreditni kartu</p>
@@ -235,7 +352,7 @@ export default function AccountsPage() {
                       <p className="account-card__balance">Karta {card.maskedNumber}</p>
                       <p className="account-card__label">{card.holderName}</p>
                       <p className="account-card__chip">
-                        {card.isVirtual ? "Virtualni" : "Plastova"} • exp {card.expiryDate}
+                        {card.isVirtual ? "Virtualni" : "Plastova"} - exp {card.expiryDate}
                       </p>
                     </div>
                   </article>
@@ -247,7 +364,7 @@ export default function AccountsPage() {
 
         <main className="accounts-main">
           <label className="search-box">
-            <span className="search-box__icon">⌕</span>
+            <span className="search-box__icon">Q</span>
             <input type="text" placeholder="Hledat" />
           </label>
 
@@ -268,10 +385,7 @@ export default function AccountsPage() {
 
             <div className="cashback-grid">
               {cashbackCards.map((item) => (
-                <article
-                  className={`cashback-card cashback-card--${item.theme}`}
-                  key={item.id}
-                >
+                <article className={`cashback-card cashback-card--${item.theme}`} key={item.id}>
                   <p className="cashback-card__title">{item.title}</p>
                   <p className="cashback-card__subtitle">{item.subtitle}</p>
                 </article>
@@ -282,22 +396,23 @@ export default function AccountsPage() {
           <section className="panel operations">
             <div className="panel__head">
               <h2>
-                Operace v breznu <span>›</span>
+                Limity a prehled <span>{">"}</span>
               </h2>
             </div>
 
-            <div className="operations__tabs">
-              <button className="tab is-active" type="button">
-                Vydaje
-              </button>
-              <button className="tab" type="button">
-                Prijmy
-              </button>
-            </div>
-
-            <div className="operations__empty">
-              <div className="operations__icon">◌</div>
-              <p>V breznu zatim nemate zadne vydaje.</p>
+            <div className="operations__metrics">
+              <article className="operations__metric">
+                <p>Dennni limit prevodu</p>
+                <strong>{formatMoney(transferLimit, "Koruna")}</strong>
+              </article>
+              <article className="operations__metric">
+                <p>Limit internetovych plateb</p>
+                <strong>{formatMoney(internetLimit, "Koruna")}</strong>
+              </article>
+              <article className="operations__metric">
+                <p>Pocet uctu</p>
+                <strong>{accounts.length}</strong>
+              </article>
             </div>
           </section>
         </main>
@@ -313,9 +428,7 @@ export default function AccountsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="new-card-title">Nova kreditni karta</h2>
-            <p className="card-modal__intro">
-              Pred vytvorenim karty si prectete podminky:
-            </p>
+            <p className="card-modal__intro">Pred vytvorenim karty si prectete podminky:</p>
 
             <ul className="card-modal__terms">
               <li>Kartu lze pouzivat pouze v souladu s obchodnimi podminkami banky.</li>
@@ -340,9 +453,7 @@ export default function AccountsPage() {
                 pattern="[0-9]*"
                 maxLength={4}
                 value={pinCode}
-                onChange={(event) =>
-                  setPinCode(event.target.value.replace(/\D/g, "").slice(0, 4))
-                }
+                onChange={(event) => setPinCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="0000"
               />
             </label>

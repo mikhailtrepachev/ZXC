@@ -39,7 +39,25 @@ export function persistSession(payload) {
   let refreshToken = "";
 
   if (typeof payload === "string") {
-    accessToken = payload;
+    const trimmed = payload.trim();
+
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        accessToken = parsed?.accessToken || parsed?.token || "";
+        refreshToken = parsed?.refreshToken || "";
+      } catch {
+        accessToken = trimmed;
+      }
+    } else if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
+      try {
+        accessToken = JSON.parse(trimmed);
+      } catch {
+        accessToken = trimmed.slice(1, -1);
+      }
+    } else {
+      accessToken = trimmed;
+    }
   } else if (payload && typeof payload === "object") {
     accessToken = payload.accessToken || payload.token || "";
     refreshToken = payload.refreshToken || "";
