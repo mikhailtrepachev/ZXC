@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./CreateAccountPage.css";
-import { persistSession, saveLocalUserProfile } from "../auth/session";
+import { getAccessToken, persistSession, saveLocalUserProfile } from "../auth/session";
 
 const PASSWORD_POLICY_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/;
@@ -43,6 +43,71 @@ async function extractApiError(response, fallback) {
   }
 
   return fallback;
+}
+
+function extractAccounts(payload) {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const directCandidates = [
+    payload.accounts,
+    payload.Accounts,
+    payload.clientAccounts,
+    payload.ClientAccounts,
+  ];
+
+  for (const value of directCandidates) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  const objectValues = Object.values(payload);
+  for (const value of objectValues) {
+    if (!Array.isArray(value) || value.length === 0) {
+      continue;
+    }
+
+    const first = value[0];
+    if (first && typeof first === "object" && ("accountNumber" in first || "AccountNumber" in first)) {
+      return value;
+    }
+  }
+
+  return [];
+}
+
+async function waitForGeneratedAccounts() {
+  const token = getAccessToken();
+  if (!token) {
+    return false;
+  }
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      const response = await fetch("/api/Accounts/info", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        const accounts = extractAccounts(payload);
+        if (accounts.length > 0) {
+          return true;
+        }
+      }
+    } catch {
+      // retry
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+
+  return false;
 }
 
 export default function CreateAccountPage() {
@@ -89,8 +154,6 @@ export default function CreateAccountPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        firstName: normalizedFirstName,
-        lastName: normalizedLastName,
         email: normalizedEmail,
         password,
       }),
@@ -123,6 +186,7 @@ export default function CreateAccountPage() {
     if (loginResponse.ok) {
       const payload = await loginResponse.text().catch(() => "");
       persistSession(payload);
+      await waitForGeneratedAccounts();
       window.location.href = "/accounts";
       return;
     }

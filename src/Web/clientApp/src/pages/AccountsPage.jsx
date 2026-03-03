@@ -135,12 +135,46 @@ function mapAccountForView(rawItem) {
 
   return {
     id,
+    accountNumber,
+    type,
     symbol,
     label,
     balanceText: formatMoney(balance, currency),
     chip: suffix ? `...${suffix}` : "",
     isFrozen,
   };
+}
+
+function extractAccountList(payload) {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const directCandidates = [
+    payload.accounts,
+    payload.Accounts,
+    payload.clientAccounts,
+    payload.ClientAccounts,
+  ];
+
+  for (const value of directCandidates) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  for (const value of Object.values(payload)) {
+    if (!Array.isArray(value) || value.length === 0) {
+      continue;
+    }
+
+    const first = value[0];
+    if (first && typeof first === "object" && ("accountNumber" in first || "AccountNumber" in first)) {
+      return value;
+    }
+  }
+
+  return [];
 }
 
 export default function AccountsPage() {
@@ -199,7 +233,7 @@ export default function AccountsPage() {
       }
 
       const payload = await response.json().catch(() => null);
-      const rawAccounts = pick(payload, "accounts", "Accounts");
+      const rawAccounts = extractAccountList(payload);
       const mappedAccounts = Array.isArray(rawAccounts) ? rawAccounts.map(mapAccountForView) : [];
 
       setProfile(payload);
@@ -275,6 +309,18 @@ export default function AccountsPage() {
       return;
     }
 
+    const targetAccountNumber =
+      accounts.find((account) => !account.isFrozen && String(account.type || "").toLowerCase() !== "investment")
+        ?.accountNumber ||
+      accounts.find((account) => !account.isFrozen)?.accountNumber ||
+      accounts[0]?.accountNumber ||
+      "";
+
+    if (!targetAccountNumber) {
+      setCreateCardError("Neexistuje dostupny ucet pro vydani karty.");
+      return;
+    }
+
     setCreateCardError("");
     setIsCreatingCard(true);
 
@@ -284,6 +330,7 @@ export default function AccountsPage() {
         credentials: "include",
         headers: getAuthHeaders(true),
         body: JSON.stringify({
+          accountNumber: targetAccountNumber,
           pinCode,
           isVirtual: false,
         }),
