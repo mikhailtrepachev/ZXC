@@ -11,12 +11,11 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    const response = await fetch("/api/Users/login", {
+    const response = await fetch("/api/Clients/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
       body: JSON.stringify({
         email,
         password,
@@ -28,7 +27,7 @@ export default function LoginPage() {
       return;
     }
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response.text().catch(() => "");
     persistSession(payload);
 
     window.location.href = "/accounts";

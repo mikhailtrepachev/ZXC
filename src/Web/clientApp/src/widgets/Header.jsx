@@ -1,24 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAccessToken, logoutUser } from "../auth/session";
 import "./header_style.css";
 
-const CATEGORIES = [
-  { id: "private", label: "Pro občany", href: "#private" },
-  { id: "business", label: "Pro podnikatele", href: "#business" },
-  { id: "premium", label: "Premium", href: "#premium" },
-];
-
-const MORE_MENU = [
-  { label: "Podpora", href: "#support" },
-  { label: "Pobočky a bankomaty", href: "#atm" },
-  { label: "Kontakty", href: "#contacts" },
-];
-
 const NAV = [
-  { label: "Účty", href: "/accounts" },
+  { label: "Ucty", href: "/accounts" },
   { label: "Karty", href: "/cards" },
-  { label: "Úvěry", href: "/loans" },
+  { label: "Uvery", href: "/loans" },
   { label: "Platby", href: "/payments" },
 ];
 
@@ -29,14 +17,7 @@ function resolveUserLabel(payload) {
     return "";
   }
 
-  const raw =
-    payload.email ||
-    payload.userName ||
-    payload.username ||
-    payload.name ||
-    payload.fullName ||
-    "";
-
+  const raw = payload.email || payload.userName || payload.username || payload.name || payload.fullName || "";
   if (typeof raw !== "string") {
     return "";
   }
@@ -45,10 +26,11 @@ function resolveUserLabel(payload) {
 }
 
 export default function Header() {
-  const [activeCategory, setActiveCategory] = useState("private");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -62,39 +44,45 @@ export default function Header() {
 
     async function loadCurrentUser() {
       const token = getAccessToken();
-      const headers = {};
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      try {
-        const response = await fetch("/api/Users/manage/info", {
-          method: "GET",
-          credentials: "include",
-          headers,
-        });
-
-        if (!response.ok) {
-          if (isMounted) {
-            setCurrentUser("");
-            setIsAuthorized(false);
-          }
-          return;
-        }
-
-        const payload = await response.json().catch(() => null);
-        const userLabel = resolveUserLabel(payload);
-
-        if (isMounted) {
-          setCurrentUser(userLabel);
-          setIsAuthorized(true);
-        }
-      } catch {
+      if (!token) {
         if (isMounted) {
           setCurrentUser("");
           setIsAuthorized(false);
         }
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const endpoints = ["/api/Accounts/info", "/api/Users/manage/info"];
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "GET",
+            credentials: "include",
+            headers,
+          });
+
+          if (!response.ok) {
+            continue;
+          }
+
+          const payload = await response.json().catch(() => null);
+          const userLabel = resolveUserLabel(payload);
+
+          if (isMounted) {
+            setCurrentUser(userLabel);
+            setIsAuthorized(true);
+          }
+          return;
+        } catch {
+          // try next endpoint
+        }
+      }
+
+      if (isMounted) {
+        setCurrentUser("");
+        setIsAuthorized(false);
       }
     }
 
@@ -105,62 +93,49 @@ export default function Header() {
     };
   }, []);
 
-  const cabinetLabel = currentUser ? currentUser : "Internetové bankovnictví";
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!userMenuRef.current?.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  const cabinetLabel = currentUser || "Internetove bankovnictvi";
 
   const handleLogout = async () => {
     await logoutUser();
     setCurrentUser("");
     setIsAuthorized(false);
     setMobileOpen(false);
+    setUserMenuOpen(false);
     window.location.href = "/login";
+  };
+
+  const handleUserSettings = () => {
+    setUserMenuOpen(false);
+    window.location.href = "/accounts";
   };
 
   return (
     <header className="site-header">
       <div className="site-header__container">
-        <div className="site-header__top">
-          <nav className="site-header__categories" aria-label="Kategorie">
-            <ul className="site-header__categoriesList">
-              {CATEGORIES.map((category) => (
-                <li key={category.id} className="site-header__categoriesItem">
-                  <a
-                    className={`site-header__categoryLink ${
-                      activeCategory === category.id ? "is-active" : ""
-                    }`}
-                    href={category.href}
-                    onClick={() => setActiveCategory(category.id)}
-                  >
-                    {category.label}
-                  </a>
-                </li>
-              ))}
-
-              <li className="site-header__categoriesItem">
-                <details className="site-header__more">
-                  <summary className="site-header__categoryLink site-header__moreSummary">
-                    Více <ChevronDown />
-                  </summary>
-
-                  <div className="site-header__moreDropdown">
-                    {MORE_MENU.map((item) => (
-                      <a key={item.href} className="site-header__moreLink" href={item.href}>
-                        {item.label}
-                      </a>
-                    ))}
-                  </div>
-                </details>
-              </li>
-            </ul>
-          </nav>
-
-          <Link className="site-header__cabinet" to="/accounts" aria-label="Internetové bankovnictví">
-            <span className="site-header__cabinetText">{cabinetLabel}</span>
-            <UserIcon />
-          </Link>
-        </div>
-
         <div className="site-header__main">
-          <Link className="site-header__logo" to="/accounts" aria-label="Domů">
+          <Link className="site-header__logo" to="/accounts" aria-label="Domu">
             <span className="site-header__logoMark" aria-hidden="true">
               <img className="site-header__logoImg" src={LOGO_URL} alt="" />
             </span>
@@ -171,7 +146,7 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="site-header__nav" aria-label="Hlavní menu">
+          <nav className="site-header__nav" aria-label="Hlavni menu">
             <ul className="site-header__navList">
               <li className="site-header__navItem">
                 <details className="site-header__details">
@@ -183,10 +158,10 @@ export default function Header() {
                       Karty
                     </Link>
                     <Link className="site-header__dropdownLink" to="/accounts">
-                      Účty
+                      Ucty
                     </Link>
                     <Link className="site-header__dropdownLink" to="/loans">
-                      Úvěry
+                      Uvery
                     </Link>
                     <Link className="site-header__dropdownLink" to="/payments">
                       Platby
@@ -206,18 +181,30 @@ export default function Header() {
           </nav>
 
           <div className="site-header__actions">
-            <button className="site-header__iconButton" type="button" aria-label="Hledat">
-              <SearchIcon />
-            </button>
-
             {isAuthorized ? (
-              <button
-                className="site-header__button site-header__button--primary"
-                type="button"
-                onClick={handleLogout}
-              >
-                Odhlásit se
-              </button>
+              <div className="site-header__userMenu" ref={userMenuRef}>
+                <button
+                  className="site-header__cabinet site-header__cabinetButton"
+                  type="button"
+                  onClick={() => setUserMenuOpen((value) => !value)}
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                >
+                  <span className="site-header__cabinetText">{cabinetLabel}</span>
+                  <UserIcon />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="site-header__userDropdown" role="menu">
+                    <button className="site-header__userDropdownButton" type="button" onClick={handleUserSettings}>
+                      Nastaveni uzivatele
+                    </button>
+                    <button className="site-header__userDropdownButton" type="button" onClick={handleLogout}>
+                      Odhlasit se
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <button
@@ -225,14 +212,14 @@ export default function Header() {
                   type="button"
                   onClick={() => (window.location.href = "/login")}
                 >
-                  Přihlásit se
+                  Prihlasit se
                 </button>
                 <button
                   className="site-header__button site-header__button--primary"
                   type="button"
                   onClick={() => (window.location.href = "/register")}
                 >
-                  Otevřít účet
+                  Otevrit ucet
                 </button>
               </>
             )}
@@ -240,7 +227,7 @@ export default function Header() {
             <button
               className="site-header__burger"
               type="button"
-              aria-label={mobileOpen ? "Zavřít menu" : "Otevřít menu"}
+              aria-label={mobileOpen ? "Zavrit menu" : "Otevrit menu"}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((value) => !value)}
             >
@@ -258,7 +245,7 @@ export default function Header() {
               className="site-header__iconButton"
               type="button"
               onClick={() => setMobileOpen(false)}
-              aria-label="Zavřít"
+              aria-label="Zavrit"
             >
               <CloseIcon />
             </button>
@@ -268,7 +255,7 @@ export default function Header() {
             <div className="mobile-menu__label">Kategorie</div>
             <div className="mobile-menu__links">
               <a href="#private" onClick={() => setMobileOpen(false)}>
-                Pro občany
+                Pro obcany
               </a>
               <a href="#business" onClick={() => setMobileOpen(false)}>
                 Pro podnikatele
@@ -280,7 +267,7 @@ export default function Header() {
                 Podpora
               </a>
               <a href="#atm" onClick={() => setMobileOpen(false)}>
-                Pobočky a bankomaty
+                Pobocky a bankomaty
               </a>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
                 {cabinetLabel}
@@ -295,10 +282,10 @@ export default function Header() {
                 Karty
               </Link>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
-                Účty
+                Ucty
               </Link>
               <Link to="/loans" onClick={() => setMobileOpen(false)}>
-                Úvěry
+                Uvery
               </Link>
               <Link to="/payments" onClick={() => setMobileOpen(false)}>
                 Platby
@@ -308,12 +295,8 @@ export default function Header() {
 
           <div className="mobile-menu__cta">
             {isAuthorized ? (
-              <button
-                className="site-header__button site-header__button--primary"
-                type="button"
-                onClick={handleLogout}
-              >
-                Odhlásit se
+              <button className="site-header__button site-header__button--primary" type="button" onClick={handleLogout}>
+                Odhlasit se
               </button>
             ) : (
               <>
@@ -322,14 +305,14 @@ export default function Header() {
                   type="button"
                   onClick={() => (window.location.href = "/login")}
                 >
-                  Přihlásit se
+                  Prihlasit se
                 </button>
                 <button
                   className="site-header__button site-header__button--primary"
                   type="button"
                   onClick={() => (window.location.href = "/register")}
                 >
-                  Otevřít účet
+                  Otevrit ucet
                 </button>
               </>
             )}
@@ -337,19 +320,6 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
   );
 }
 
@@ -370,17 +340,8 @@ function ChevronDown() {
 function UserIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M4.5 20a7.5 7.5 0 0 1 15 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -396,12 +357,7 @@ function MenuIcon() {
 function CloseIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import "./LoansPage.css";
 
 const PURPOSE_OPTIONS = [
-  { id: "cash", label: "Cash loan", baseRate: 5.4 },
-  { id: "car", label: "Car purchase", baseRate: 4.9 },
-  { id: "home", label: "Home improvement", baseRate: 4.3 },
-  { id: "education", label: "Education", baseRate: 4.6 },
+  { id: "cash", label: "Minutová půjčka", baseRate: 5.4 },
+  { id: "car", label: "Půjčka na auto", baseRate: 4.9 },
+  { id: "home", label: "Úvěr na rekonstrukci", baseRate: 4.3 },
+  { id: "education", label: "Vzdělání", baseRate: 4.6 },
 ];
 
 const MIN_AMOUNT = 50000;
@@ -36,7 +36,11 @@ function formatCzk(value) {
 function formatTerm(months) {
   const years = months / 12;
   const rounded = Number.isInteger(years) ? years.toFixed(0) : years.toFixed(1);
-  const yearLabel = Number(rounded) === 1 ? "year" : "years";
+
+  let yearLabel = "let";
+  if (Number(rounded) === 1) yearLabel = "rok";
+  else if (Number(rounded) > 1 && Number(rounded) < 5) yearLabel = "roky";
+
   return `${rounded} ${yearLabel}`;
 }
 
@@ -105,16 +109,16 @@ export default function LoansPage() {
     <main className="loan-page">
       <section className="loan-calculator">
         <div className="loan-input-panel">
-          <p className="loan-eyebrow">Loan calculator</p>
-          <h1>Estimate your monthly payment</h1>
+          <p className="loan-eyebrow">Kalkulačka úvěru</p>
+          <h1>Spočítejte si svou měsíční splátku</h1>
           <p className="loan-intro">
-            Adjust amount, term and purpose to get a quick estimate before
-            applying.
+            Upravte částku, dobu splácení a účel úvěru pro rychlý orientační
+            výpočet před podáním žádosti.
           </p>
 
           <div className="field-group">
             <div className="field-header">
-              <label htmlFor="loan-amount">Amount</label>
+              <label htmlFor="loan-amount">Částka</label>
               <span>{formatCzk(amount)}</span>
             </div>
             <input
@@ -147,7 +151,7 @@ export default function LoansPage() {
 
           <div className="field-group">
             <div className="field-header">
-              <label htmlFor="loan-term">Term</label>
+              <label htmlFor="loan-term">Doba splácení</label>
               <span>{formatTerm(termMonths)}</span>
             </div>
             <input
@@ -167,7 +171,7 @@ export default function LoansPage() {
 
           <div className="field-group">
             <div className="field-header">
-              <label htmlFor="loan-purpose">Purpose</label>
+              <label htmlFor="loan-purpose">Účel úvěru</label>
             </div>
             <select
               id="loan-purpose"
@@ -189,42 +193,42 @@ export default function LoansPage() {
               checked={withInsurance}
               onChange={(event) => setWithInsurance(event.target.checked)}
             />
-            Include monthly insurance estimate
+            Zahrnout odhad měsíčního pojištění
           </label>
         </div>
 
         <aside className="loan-result-panel" aria-live="polite">
-          <p className="loan-result-title">Estimated results</p>
+          <p className="loan-result-title">Odhadované výsledky</p>
           <p className="loan-main-value">{formatCzk(result.monthlyPayment)}</p>
-          <p className="loan-main-label">Estimated monthly payment</p>
+          <p className="loan-main-label">Odhadovaná měsíční splátka</p>
 
           <dl className="loan-metrics">
             <div>
-              <dt>Monthly payment with insurance</dt>
+              <dt>Měsíční splátka s pojištěním</dt>
               <dd>{formatCzk(result.monthlyWithInsurance)}</dd>
             </div>
             <div>
-              <dt>Annual interest rate from</dt>
+              <dt>Roční úroková sazba od</dt>
               <dd>{result.annualRate.toFixed(2)} %</dd>
             </div>
             <div>
-              <dt>Estimated RPSN from</dt>
+              <dt>Odhadované RPSN od</dt>
               <dd>{result.rpsn.toFixed(2)} %</dd>
             </div>
             <div>
-              <dt>Loan insurance (monthly)</dt>
+              <dt>Pojištění úvěru (měsíčně)</dt>
               <dd>{formatCzk(result.insuranceMonthly)}</dd>
             </div>
             <div>
-              <dt>Total amount paid</dt>
+              <dt>Celkem zaplatíte</dt>
               <dd>{formatCzk(result.totalPaid)}</dd>
             </div>
           </dl>
 
           <p className="loan-note">
-            This calculator provides an approximate estimate only and is not a
-            binding offer. Final rate depends on credit scoring and contract
-            details.
+            Tato kalkulačka poskytuje pouze orientační výpočet a nepředstavuje
+            závaznou nabídku. Konečná úroková sazba závisí na výsledku posouzení
+            úvěruschopnosti a smluvních podmínkách.
           </p>
         </aside>
       </section>

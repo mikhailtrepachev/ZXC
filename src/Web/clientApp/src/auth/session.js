@@ -1,6 +1,30 @@
 const ACCESS_TOKEN_KEY = "zxc_access_token";
 const REFRESH_TOKEN_KEY = "zxc_refresh_token";
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== "string") {
+    return null;
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+        .join("")
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -11,61 +35,62 @@ export function clearSession() {
 }
 
 export function persistSession(payload) {
-  if (!payload?.accessToken) {
+  let accessToken = "";
+  let refreshToken = "";
+
+  if (typeof payload === "string") {
+    accessToken = payload;
+  } else if (payload && typeof payload === "object") {
+    accessToken = payload.accessToken || payload.token || "";
+    refreshToken = payload.refreshToken || "";
+  }
+
+  if (!accessToken) {
     return false;
   }
 
-  localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
 
-  if (payload.refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
   return true;
 }
 
+export function getCurrentUserFromToken() {
+  const token = getAccessToken();
+  const payload = decodeJwtPayload(token);
+
+  if (!payload) {
+    return "";
+  }
+
+  return payload.email || payload.unique_name || payload.name || payload.sub || "";
+}
+
 export async function isAuthenticated() {
   const token = getAccessToken();
-  const headers = {};
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (!token) {
+    return false;
   }
 
   try {
-    const response = await fetch("/api/Users/manage/info", {
+    const response = await fetch("/api/Accounts/info", {
       method: "GET",
-      credentials: "include",
-      headers,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
-    if (!response.ok) {
-      return false;
-    }
-
-    return true;
+    return response.ok;
   } catch {
     return false;
   }
 }
 
 export async function logoutUser() {
-  const token = getAccessToken();
-  const headers = {};
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  try {
-    await fetch("/api/Users/logout", {
-      method: "POST",
-      credentials: "include",
-      headers,
-    });
-  } catch {
-    // Ignore network errors here; local session is still cleared below.
-  } finally {
-    clearSession();
-  }
+  clearSession();
 }
