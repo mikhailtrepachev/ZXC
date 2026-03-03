@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import CreateAccountPage from "./pages/CreateAccountPage";
 import AccountsPage from "./pages/AccountsPage";
 import CardsPage from "./pages/CardsPage";
+import CardDetailsPage from "./pages/CardDetailsPage";
 import LoansPage from "./pages/LoansPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import UserSettingsPage from "./pages/UserSettingsPage";
@@ -69,6 +70,15 @@ function App() {
           element={
             <ProtectedRoute>
               <CardsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/cards/:cardId"
+          element={
+            <ProtectedRoute>
+              <CardDetailsPage />
             </ProtectedRoute>
           }
         />

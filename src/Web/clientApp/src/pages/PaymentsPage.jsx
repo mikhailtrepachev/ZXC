@@ -69,6 +69,38 @@ function transactionIsIncome(type) {
   return Number(type) === 0;
 }
 
+function extractAccountList(payload) {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const directCandidates = [
+    payload.accounts,
+    payload.Accounts,
+    payload.clientAccounts,
+    payload.ClientAccounts,
+  ];
+
+  for (const value of directCandidates) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  for (const value of Object.values(payload)) {
+    if (!Array.isArray(value) || value.length === 0) {
+      continue;
+    }
+
+    const first = value[0];
+    if (first && typeof first === "object" && ("accountNumber" in first || "AccountNumber" in first)) {
+      return value;
+    }
+  }
+
+  return [];
+}
+
 async function readErrorMessage(response, fallbackMessage) {
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -114,8 +146,7 @@ export default function PaymentsPage() {
   const [submitSuccess, setSubmitSuccess] = useState("");
 
   const accounts = useMemo(() => {
-    const raw = pick(profile, "accounts", "Accounts");
-    return Array.isArray(raw) ? raw : [];
+    return extractAccountList(profile);
   }, [profile]);
 
   const dailyLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;

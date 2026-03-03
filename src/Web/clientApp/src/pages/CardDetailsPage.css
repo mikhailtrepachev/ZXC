@@ -5,6 +5,26 @@
   font-family: "Manrope", system-ui, sans-serif;
 }
 
+.card-details-toolbar {
+  max-width: 1200px;
+  margin: 0 auto 1rem;
+}
+
+.card-details-back {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-details-back:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .card-details-shell {
   max-width: 1200px;
   margin: 0 auto;
@@ -106,6 +126,16 @@
 
 .card-main-content {
   padding: 2rem;
+}
+
+.card-details-state {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.4rem;
+}
+
+.card-details-state--error {
+  color: #ff9d9d;
 }
 
 .card-details-panel h2 {

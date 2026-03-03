@@ -52,6 +52,26 @@
   margin-top: 2px;
 }
 
+.account-card--action {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+
+.account-card--action:hover {
+  transform: translateY(-1px);
+  background: var(--ab-surface-2);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.account-card--action:focus-visible {
+  outline: 2px solid rgba(121, 182, 255, 0.9);
+  outline-offset: 2px;
+}
+
 .account-card--frozen {
   border-color: rgba(255, 153, 153, 0.4);
 }

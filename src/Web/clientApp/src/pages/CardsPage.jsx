@@ -108,6 +108,38 @@ function transactionIsIncome(type) {
   return Number(type) === 0;
 }
 
+function extractAccountList(payload) {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const directCandidates = [
+    payload.accounts,
+    payload.Accounts,
+    payload.clientAccounts,
+    payload.ClientAccounts,
+  ];
+
+  for (const value of directCandidates) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  for (const value of Object.values(payload)) {
+    if (!Array.isArray(value) || value.length === 0) {
+      continue;
+    }
+
+    const first = value[0];
+    if (first && typeof first === "object" && ("accountNumber" in first || "AccountNumber" in first)) {
+      return value;
+    }
+  }
+
+  return [];
+}
+
 export default function CardsPage() {
   const navigate = useNavigate();
 
@@ -121,6 +153,7 @@ export default function CardsPage() {
 
   const [profileEmail, setProfileEmail] = useState("");
   const [balance, setBalance] = useState(null);
+  const [accountOptions, setAccountOptions] = useState([]);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [notice, setNotice] = useState({ type: "", text: "" });
 
@@ -274,8 +307,16 @@ export default function CardsPage() {
       const payload = await response.json().catch(() => null);
       const email = String(pick(payload, "email", "Email", "userName", "UserName") || "").trim();
       setProfileEmail(email);
-      const rawAccounts = pick(payload, "accounts", "Accounts");
+      const rawAccounts = extractAccountList(payload);
       const list = Array.isArray(rawAccounts) ? rawAccounts : [];
+
+      setAccountOptions(
+        list.map((account) => ({
+          accountNumber: String(pick(account, "accountNumber", "AccountNumber") || ""),
+          isFrozen: Boolean(pick(account, "isFrozen", "IsFrozen")),
+          type: String(pick(account, "type", "Type") || ""),
+        }))
+      );
 
       if (list.length === 0) {
         setBalance(null);
@@ -290,6 +331,7 @@ export default function CardsPage() {
       setBalance(Number.isFinite(total) ? total : null);
     } catch {
       setProfileEmail("");
+      setAccountOptions([]);
       setBalance(null);
     }
   };
@@ -331,6 +373,22 @@ export default function CardsPage() {
       return;
     }
 
+    const targetAccountNumber =
+      accountOptions.find(
+        (account) =>
+          account.accountNumber &&
+          !account.isFrozen &&
+          String(account.type || "").toLowerCase() !== "investment"
+      )?.accountNumber ||
+      accountOptions.find((account) => account.accountNumber && !account.isFrozen)?.accountNumber ||
+      accountOptions[0]?.accountNumber ||
+      "";
+
+    if (!targetAccountNumber) {
+      setCreateCardError("Neexistuje dostupny ucet pro vydani karty.");
+      return;
+    }
+
     setCreateCardError("");
     setIsCreatingCard(true);
 
@@ -340,6 +398,7 @@ export default function CardsPage() {
         credentials: "include",
         headers: getAuthHeaders(true),
         body: JSON.stringify({
+          accountNumber: targetAccountNumber,
           pinCode,
           isVirtual: false,
         }),
