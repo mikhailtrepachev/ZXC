@@ -3,6 +3,7 @@ using ZxcBank.Domain.Entities;
 using ZxcBank.Domain.Constants; // Убедись, что тут есть Roles.Client
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ZxcBank.Application.Common.Models;
 
 namespace ZxcBank.Application.Auth.Commands;
 
@@ -26,12 +27,12 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
     public async Task<string> Handle(RegisterClientCommand request, CancellationToken cancellationToken)
     {
         // 1. Создаем технического пользователя (Identity)
-        var (result, userId) = await _identityService.CreateUserAsync(request.Email, request.Password);
+        (Result result, string userId) = await _identityService.CreateUserAsync(request.Email, request.Password);
 
         if (!result.Succeeded)
         {
             // Собираем ошибки (например, "Пароль слишком простой")
-            var errors = string.Join(", ", result.Errors);
+            string errors = string.Join(", ", result.Errors);
             throw new Exception($"Registration error: {errors}");
         }
 
@@ -40,7 +41,7 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
         await _identityService.AddToRoleAsync(userId, Roles.Client); 
 
         // 3. Создаем бизнес-сущность "Client" (твоя таблица)
-        var clientEntity = new Client
+        Client clientEntity = new Client
         {
             UserId = userId,
             DailyTransferLimit = 10000, // Дефолтный лимит для новичков

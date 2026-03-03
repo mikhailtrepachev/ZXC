@@ -1,4 +1,5 @@
-﻿using ZxcBank.Application.Common.Interfaces;
+﻿using System.Text;
+using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Constants;
 using ZxcBank.Infrastructure.Data;
 using ZxcBank.Infrastructure.Data.Interceptors;
@@ -8,6 +9,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
+using ZxcBank.Domain.Entities;
+using ZxcBank.Infrastructure.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -51,7 +56,28 @@ public static class DependencyInjection
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
 
-        builder.Services.AddAuthorization(options =>
-            options.AddPolicy(Policies.CanPurge, policy => policy.RequireRole(Roles.Administrator)));
+        builder.Services.AddTransient<JwtTokenGenerator>();
+        builder.Services.AddTransient<IPasswordHasher<Card>, PasswordHasher<Card>>();
+
+        builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
+                };
+            });
+        
     }
 }
