@@ -1,0 +1,156 @@
+.user-settings-page__container {
+  max-width: 1080px;
+}
+
+.user-settings-page__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.user-settings-page__grid {
+  margin-top: 8px;
+}
+
+.user-settings-page__hint {
+  margin: 0 0 8px;
+  color: #4b5563;
+}
+
+.user-settings-page__email {
+  margin: 0 0 12px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-settings-page__nameForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.user-settings-page__nameForm label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.user-settings-page__nameForm input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.user-settings-page__nameForm input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
+}
+
+.user-settings-page__actions {
+  margin-bottom: 12px;
+}
+
+.user-settings-page__sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.user-settings-page__endpoint {
+  font-size: 12px;
+  color: #4b5563;
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.user-settings-page__state {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.user-settings-page__state--error {
+  color: #b91c1c;
+}
+
+.user-settings-page__state--ok {
+  color: #166534;
+}
+
+.user-settings-page__table {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.user-settings-page__row {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(300px, 2fr);
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.user-settings-page__row:last-child {
+  border-bottom: none;
+}
+
+.user-settings-page__key,
+.user-settings-page__value {
+  padding: 10px 12px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.user-settings-page__key {
+  background: #f8fafc;
+  font-family: "Consolas", "Courier New", monospace;
+  color: #1f2937;
+}
+
+.user-settings-page__value {
+  color: #111827;
+  background: #ffffff;
+}
+
+.user-settings-page__raw {
+  margin-top: 12px;
+}
+
+.user-settings-page__raw summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #374151;
+}
+
+.user-settings-page__raw pre {
+  margin: 8px 0 0;
+  max-height: 360px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 768px) {
+  .user-settings-page__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-settings-page__nameForm {
+    grid-template-columns: 1fr;
+  }
+
+  .user-settings-page__row {
+    grid-template-columns: 1fr;
+  }
+}

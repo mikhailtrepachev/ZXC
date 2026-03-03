@@ -6,6 +6,7 @@ import AccountsPage from "./pages/AccountsPage";
 import CardsPage from "./pages/CardsPage";
 import LoansPage from "./pages/LoansPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import UserSettingsPage from "./pages/UserSettingsPage";
 import Header from "./widgets/Header.jsx";
 import Footer from "./widgets/Footer.jsx";
 import {
@@ -79,6 +80,15 @@ function App() {
           element={
             <ProtectedRoute>
               <PaymentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/user-settings"
+          element={
+            <ProtectedRoute>
+              <UserSettingsPage />
             </ProtectedRoute>
           }
         />
