@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getAccessToken, logoutUser, resolveUserDisplayNameByEmail } from "../auth/session";
 import "./header_style.css";
 
@@ -39,6 +39,7 @@ function resolveUserLabel(payload) {
 }
 
 export default function Header() {
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -141,7 +142,7 @@ export default function Header() {
 
   const handleUserSettings = () => {
     setUserMenuOpen(false);
-    window.location.href = "/accounts";
+    navigate("/user-settings");
   };
 
   return (
