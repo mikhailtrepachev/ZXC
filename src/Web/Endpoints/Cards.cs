@@ -1,6 +1,7 @@
 using ZxcBank.Application.Cards.Queries.GetCards; // <--- Подключаем Query
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Card;
+using ZxcBank.Application.Cards.Commands.CreateCard;
 
 namespace ZxcBank.Web.Endpoints;
 
