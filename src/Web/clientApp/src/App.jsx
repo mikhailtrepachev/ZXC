@@ -6,10 +6,12 @@ import CreateAccountPage from "./pages/CreateAccountPage";
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<CreateAccountPage />} />
+        <Header />
+        <Routes>
+
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<CreateAccountPage />} />
       </Routes>
     </BrowserRouter>
   );
