@@ -1,8 +1,6 @@
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Entities;
-using ZxcBank.Domain.Constants; // Убедись, что тут есть Roles.Client
-using MediatR;
-using Microsoft.EntityFrameworkCore;
+using ZxcBank.Domain.Constants;
 using ZxcBank.Application.Common.Models;
 
 namespace ZxcBank.Application.Auth.Commands;
@@ -26,32 +24,46 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
 
     public async Task<string> Handle(RegisterClientCommand request, CancellationToken cancellationToken)
     {
-        // 1. Создаем технического пользователя (Identity)
         (Result result, string userId) = await _identityService.CreateUserAsync(request.Email, request.Password);
 
         if (!result.Succeeded)
         {
-            // Собираем ошибки (например, "Пароль слишком простой")
             string errors = string.Join(", ", result.Errors);
             throw new Exception($"Registration error: {errors}");
         }
 
-        // 2. Выдаем ему роль "Client" (чтобы работала авторизация)
-        // Убедись, что метод AddToRoleAsync есть в IIdentityService
         await _identityService.AddToRoleAsync(userId, Roles.Client); 
 
-        // 3. Создаем бизнес-сущность "Client" (твоя таблица)
         Client clientEntity = new Client
         {
             UserId = userId,
-            DailyTransferLimit = 10000, // Дефолтный лимит для новичков
+            DailyTransferLimit = 10000,
             InternetPaymentLimit = 5000
         };
 
         _context.Clients.Add(clientEntity);
+        
+        var newAccount = new Account
+        {
+            OwnerId = userId,
+            AccountNumber = GenerateAccountNumber(), // Генерируем красивый номер
+            Balance = 0, // Стартовый баланс
+            IsFrozen = false
+        };
+        
+        _context.Accounts.Add(newAccount);
 
         await _context.SaveChangesAsync(cancellationToken);
 
         return userId;
+    }
+    
+    private string GenerateAccountNumber()
+    {
+        Random random = new Random();
+        string part1 = random.Next(100000, 999999).ToString();
+        string part2 = random.Next(100000, 999999).ToString();
+        
+        return $"40817810{part1}{part2}"; // Итого 20 цифр
     }
 }

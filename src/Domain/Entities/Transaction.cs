@@ -11,4 +11,6 @@ public class Transaction : BaseAuditableEntity
     public TransactionStatus Status { get; set; }
     
     public string? ApprovedBy { get; set; } // in case of children accounts
+
+    public string? Description { get; set; }
 }
