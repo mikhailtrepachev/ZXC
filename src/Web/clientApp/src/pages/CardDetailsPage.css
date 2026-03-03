@@ -138,6 +138,37 @@
   color: #ff9d9d;
 }
 
+.card-details-state--ok {
+  color: #8ef6c4;
+}
+
+.card-details-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card-details-head h2 {
+  margin: 0;
+}
+
+.card-details-revealBtn {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-details-revealBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
 .card-details-panel h2 {
   font-size: 2.1rem;
   color: #fff;
@@ -224,7 +255,105 @@
   background: linear-gradient(90deg, #cf78ff 0%, #82a8ff 100%);
 }
 
+.card-details-modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 22, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 1.6rem;
+  z-index: 120;
+}
+
+.card-details-modal {
+  width: min(460px, 96vw);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(145deg, #2a2059, #221c4d);
+  color: #fff;
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.45);
+  padding: 1.6rem;
+}
+
+.card-details-modal h2 {
+  margin: 0 0 0.8rem;
+  font-size: 2rem;
+}
+
+.card-details-modalHint {
+  margin: 0 0 1.1rem;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 1.4rem;
+}
+
+.card-details-modalField {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.card-details-modalField span {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.card-details-modalField input {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 0.8rem 0.9rem;
+  font-size: 1.4rem;
+}
+
+.card-details-modalField input:focus {
+  outline: none;
+  border-color: #cc8cff;
+  box-shadow: 0 0 0 3px rgba(204, 140, 255, 0.2);
+}
+
+.card-details-modalError {
+  margin: 0 0 1rem;
+  color: #ff9d9d;
+  font-size: 1.3rem;
+}
+
+.card-details-modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+.card-details-modalBtn {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0.7rem 1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.card-details-modalBtn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-details-modalBtn--primary {
+  background: linear-gradient(90deg, #d83f87, #e98074);
+}
+
+.card-details-modalBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 @media (max-width: 920px) {
+  .card-details-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .card-details-shell {
     grid-template-columns: 1fr;
   }

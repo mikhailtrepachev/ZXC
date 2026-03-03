@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAccessToken, resolveUserDisplayNameByEmail } from "../auth/session";
+import { getAccessToken, resolveUserDisplayNameByEmail, saveLocalCardPin } from "../auth/session";
 import "./AccountsPage.css";
 
 const quickActions = [
@@ -342,6 +342,12 @@ export default function AccountsPage() {
         const message = await readErrorMessage(response, "Nepodarilo se vytvorit kartu.");
         setCreateCardError(message);
         return;
+      }
+
+      const createdCardRaw = await response.text().catch(() => "");
+      const createdCardId = Number(String(createdCardRaw).replace(/"/g, "").trim());
+      if (Number.isFinite(createdCardId) && createdCardId > 0) {
+        saveLocalCardPin(createdCardId, pinCode);
       }
 
       await loadCards();

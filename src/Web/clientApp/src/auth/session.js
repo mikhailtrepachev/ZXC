@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = "zxc_access_token";
 const REFRESH_TOKEN_KEY = "zxc_refresh_token";
 const USER_PROFILES_KEY = "zxc_user_profiles";
+const CARD_PINS_KEY = "zxc_card_pins";
 
 function decodeJwtPayload(token) {
   if (!token || typeof token !== "string") {
@@ -52,6 +53,24 @@ function writeUserProfiles(map) {
   localStorage.setItem(USER_PROFILES_KEY, JSON.stringify(map));
 }
 
+function readCardPins() {
+  try {
+    const raw = localStorage.getItem(CARD_PINS_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeCardPins(map) {
+  localStorage.setItem(CARD_PINS_KEY, JSON.stringify(map));
+}
+
 export function saveLocalUserProfile({ email, firstName, lastName }) {
   const normalizedEmail = normalizeEmail(email);
   const normalizedFirstName = String(firstName || "").trim();
@@ -93,6 +112,36 @@ export function resolveUserDisplayNameByEmail(email, fallback = "") {
   }
 
   return String(fallback || "").trim();
+}
+
+export function saveLocalCardPin(cardId, pinCode) {
+  const normalizedCardId = Number(cardId);
+  const normalizedPinCode = String(pinCode || "").trim();
+
+  if (!Number.isFinite(normalizedCardId) || normalizedCardId <= 0) {
+    return false;
+  }
+
+  if (!/^\d{4}$/.test(normalizedPinCode)) {
+    return false;
+  }
+
+  const pins = readCardPins();
+  pins[String(normalizedCardId)] = normalizedPinCode;
+  writeCardPins(pins);
+  return true;
+}
+
+export function getLocalCardPin(cardId) {
+  const normalizedCardId = Number(cardId);
+
+  if (!Number.isFinite(normalizedCardId) || normalizedCardId <= 0) {
+    return "";
+  }
+
+  const pins = readCardPins();
+  const value = pins[String(normalizedCardId)];
+  return typeof value === "string" ? value : "";
 }
 
 export function clearSession() {

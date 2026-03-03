@@ -114,6 +114,9 @@ export default function CreateAccountPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [street, setStreet] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -128,9 +131,27 @@ export default function CreateAccountPage() {
     const normalizedFirstName = firstName.trim();
     const normalizedLastName = lastName.trim();
     const normalizedEmail = email.trim();
+    const normalizedPhoneNumber = phoneNumber.trim();
+    const normalizedStateName = stateName.trim();
+    const normalizedStreet = street.trim();
 
     if (!normalizedFirstName || !normalizedLastName) {
       setError("Vyplnte jmeno i prijmeni.");
+      return;
+    }
+
+    if (!normalizedPhoneNumber) {
+      setError("Vyplnte telefonni cislo.");
+      return;
+    }
+
+    if (!/^\+?[0-9\s\-()]{7,20}$/.test(normalizedPhoneNumber)) {
+      setError("Zadejte platne telefonni cislo.");
+      return;
+    }
+
+    if (!normalizedStateName || !normalizedStreet) {
+      setError("Vyplnte stat a ulici.");
       return;
     }
 
@@ -154,8 +175,13 @@ export default function CreateAccountPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
         email: normalizedEmail,
         password,
+        phoneNumber: normalizedPhoneNumber,
+        state: normalizedStateName,
+        street: normalizedStreet,
       }),
     });
 
@@ -228,6 +254,39 @@ export default function CreateAccountPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Telefon</label>
+            <input
+              type="tel"
+              required
+              value={phoneNumber}
+              onChange={(event) => setPhoneNumber(event.target.value)}
+              placeholder="+420 123 456 789"
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Stat</label>
+            <input
+              type="text"
+              required
+              value={stateName}
+              onChange={(event) => setStateName(event.target.value)}
+              placeholder="Ceska republika"
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Ulice</label>
+            <input
+              type="text"
+              required
+              value={street}
+              onChange={(event) => setStreet(event.target.value)}
+              placeholder="Hlavni 123"
             />
           </div>
 

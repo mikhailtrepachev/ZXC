@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getAccessToken, resolveUserDisplayNameByEmail } from "../auth/session";
+import { getAccessToken, getLocalCardPin, resolveUserDisplayNameByEmail } from "../auth/session";
 import "./CardDetailsPage.css";
 
 const tabs = [
@@ -81,6 +81,13 @@ function formatDate(value) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function formatCountdown(secondsLeft) {
+  const safe = Math.max(0, Number(secondsLeft) || 0);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function TransactionsTab({ items, isLoading }) {
@@ -186,8 +193,30 @@ export default function CardDetailsPage() {
   const [isCardLoading, setIsCardLoading] = useState(true);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isPasswordChecking, setIsPasswordChecking] = useState(false);
+  const [revealUntil, setRevealUntil] = useState(0);
+  const [nowTs, setNowTs] = useState(() => Date.now());
 
   const numericCardId = Number(cardId);
+  const isSensitiveVisible = revealUntil > nowTs;
+  const secondsLeft = Math.max(0, Math.ceil((revealUntil - nowTs) / 1000));
+
+  useEffect(() => {
+    if (!isSensitiveVisible) {
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setNowTs(Date.now());
+    }, 250);
+
+    return () => {
+      clearInterval(timerId);
+    };
+  }, [isSensitiveVisible]);
 
   useEffect(() => {
     let isMounted = true;
@@ -331,13 +360,17 @@ export default function CardDetailsPage() {
       return [];
     }
 
+    const fullCardNumber = String(pick(card, "cardNumber", "CardNumber", "fullNumber", "FullNumber") || "").trim();
+    const localPin = getLocalCardPin(card.id);
+
     return [
-      { label: "Card number", value: card.maskedNumber || "--" },
+      { label: "Card number", value: isSensitiveVisible && fullCardNumber ? fullCardNumber : card.maskedNumber || "--" },
       { label: "Valid to", value: card.expiryDate || "--" },
-      { label: "CVC", value: "***" },
+      { label: "CVC", value: isSensitiveVisible ? card.cvv || "--" : "***" },
+      { label: "PIN", value: isSensitiveVisible ? localPin || "Neni ulozen na klientu" : "****" },
       { label: "Card holder", value: resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--") },
     ];
-  }, [card, profileEmail]);
+  }, [card, isSensitiveVisible, profileEmail]);
 
   const cardProfile = useMemo(() => {
     if (!card) {
@@ -386,7 +419,47 @@ export default function CardDetailsPage() {
     }
 
     if (activeTab === "security") {
-      return <InfoGrid title="Detaily karty" items={cardDetails} emptyText="Data karty nejsou k dispozici." />;
+      return (
+        <section className="card-details-panel">
+          <div className="card-details-head">
+            <h2>Detaily karty</h2>
+            <button className="card-details-revealBtn" type="button" onClick={() => setIsPasswordModalOpen(true)}>
+              {isSensitiveVisible ? "Detaily otevreny" : "Pokazat detaily"}
+            </button>
+          </div>
+
+          {!isSensitiveVisible && (
+            <p className="card-details-state">
+              Citlive udaje jsou skryte. Kliknete na tlacitko a overte heslo.
+            </p>
+          )}
+
+          {isSensitiveVisible && (
+            <p className="card-details-state card-details-state--ok">
+              Citlive udaje jsou dostupne: {formatCountdown(secondsLeft)}
+            </p>
+          )}
+
+          {isSensitiveVisible && !String(pick(card, "cardNumber", "CardNumber", "fullNumber", "FullNumber") || "").trim() && (
+            <p className="card-details-state">
+              Backend vraci pouze maskovane cislo karty, proto plne cislo neni k dispozici.
+            </p>
+          )}
+
+          {cardDetails.length === 0 ? (
+            <p className="card-details-state">Data karty nejsou k dispozici.</p>
+          ) : (
+            <div className="info-grid">
+              {cardDetails.map((item) => (
+                <article className="info-card" key={item.label}>
+                  <p className="info-label">{item.label}</p>
+                  <p className="info-value">{item.value}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      );
     }
 
     if (activeTab === "limits") {
@@ -394,7 +467,62 @@ export default function CardDetailsPage() {
     }
 
     return <InfoGrid title="Profil karty" items={cardProfile} emptyText="Data profilu nejsou k dispozici." />;
-  }, [activeTab, cardDetails, cardLimits, cardProfile, isTransactionsLoading, transactionRows]);
+  }, [activeTab, card, cardDetails, cardLimits, cardProfile, isSensitiveVisible, isTransactionsLoading, secondsLeft, transactionRows]);
+
+  const closePasswordModal = () => {
+    if (isPasswordChecking) {
+      return;
+    }
+
+    setIsPasswordModalOpen(false);
+    setPasswordInput("");
+    setPasswordError("");
+  };
+
+  const handleVerifyPassword = async () => {
+    setPasswordError("");
+
+    const password = passwordInput.trim();
+    if (!password) {
+      setPasswordError("Zadejte heslo.");
+      return;
+    }
+
+    if (!profileEmail) {
+      setPasswordError("Nepodarilo se zjistit e-mail uzivatele.");
+      return;
+    }
+
+    setIsPasswordChecking(true);
+
+    try {
+      const response = await fetch("/api/Clients/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: profileEmail,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        setPasswordError("Nespravne heslo.");
+        return;
+      }
+
+      setRevealUntil(Date.now() + 60_000);
+      setNowTs(Date.now());
+      setIsPasswordModalOpen(false);
+      setPasswordInput("");
+      setPasswordError("");
+    } catch {
+      setPasswordError("Overeni hesla se nezdarilo.");
+    } finally {
+      setIsPasswordChecking(false);
+    }
+  };
 
   return (
     <main className="card-details-page">
@@ -435,6 +563,43 @@ export default function CardDetailsPage() {
           {!isCardLoading && !error && panel}
         </section>
       </div>
+
+      {isPasswordModalOpen && (
+        <div className="card-details-modalBackdrop" role="presentation" onClick={closePasswordModal}>
+          <div
+            className="card-details-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="card-reveal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="card-reveal-title">Potvrzeni hesla</h2>
+            <p className="card-details-modalHint">Pro zobrazeni detailu karty zadejte heslo od uctu.</p>
+
+            <label className="card-details-modalField">
+              <span>Heslo</span>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(event) => setPasswordInput(event.target.value)}
+                placeholder="Zadejte heslo"
+                autoFocus
+              />
+            </label>
+
+            {passwordError && <p className="card-details-modalError">{passwordError}</p>}
+
+            <div className="card-details-modalActions">
+              <button type="button" className="card-details-modalBtn card-details-modalBtn--ghost" onClick={closePasswordModal} disabled={isPasswordChecking}>
+                Zrusit
+              </button>
+              <button type="button" className="card-details-modalBtn card-details-modalBtn--primary" onClick={handleVerifyPassword} disabled={isPasswordChecking}>
+                {isPasswordChecking ? "Overuji..." : "Potvrdit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
