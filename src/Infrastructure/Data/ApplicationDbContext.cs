@@ -15,6 +15,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Manager> Managers => Set<Manager>();
     public DbSet<Child> Children => Set<Child>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<Card> Cards => Set<Card>();
     
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
