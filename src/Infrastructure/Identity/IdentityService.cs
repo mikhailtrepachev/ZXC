@@ -78,4 +78,21 @@ public class IdentityService : IIdentityService
 
         return result.ToApplicationResult();
     }
+    
+    public async Task<Result> AddToRoleAsync(string userId, string role)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+    
+        // Если не нашли - ошибка
+        if (user == null)
+        {
+            return Result.Failure(new[] { "User not found" });
+        }
+
+        // 2. Добавляем роль через UserManager (стандартный класс .NET Identity)
+        IdentityResult result = await _userManager.AddToRoleAsync(user, role);
+
+        // 3. Преобразуем результат в формат вашего приложения
+        return result.ToApplicationResult();
+    }
 }
