@@ -1,6 +1,7 @@
 import "./Footer.css";
 import { LuFacebook, LuInstagram, LuGithub, LuTwitter } from "react-icons/lu";
-import "./Footer.css"
+import "./Footer.css";
+
 export default function Footer() {
   const year = new Date().getFullYear();
 
@@ -10,56 +11,58 @@ export default function Footer() {
         <div className="footer-top">
           <h2 className="footer-logo">ZXC Bank</h2>
           <p className="footer-tagline">
-            Your trusted partner in managing money and payments.
+            Váš spolehlivý partner pro správu financí a plateb.
           </p>
         </div>
 
         <div className="footer-links">
           <div className="footer-column">
-            <p className="footer-links-title">Products</p>
+            <p className="footer-links-title">Produkty</p>
             <ul className="footer-list">
               <li>
-                <a href="/">Checking Accounts</a>
+                <a href="/">Běžné účty</a>
               </li>
               <li>
-                <a href="/">Savings Accounts</a>
+                <a href="/">Spořicí účty</a>
               </li>
               <li>
-                <a href="/">Credit Cards</a>
+                <a href="/">Kreditní karty</a>
               </li>
               <li>
-                <a href="/">Loans</a>
+                <a href="/">Úvěry</a>
               </li>
             </ul>
           </div>
+
           <div className="footer-column">
-            <p className="footer-links-title">Company</p>
+            <p className="footer-links-title">Společnost</p>
             <ul className="footer-list">
               <li>
-                <a href="/">About Us</a>
+                <a href="/">O nás</a>
               </li>
               <li>
-                <a href="/">Contact</a>
+                <a href="/">Kontakt</a>
               </li>
               <li>
-                <a href="/">Careers</a>
+                <a href="/">Kariéra</a>
               </li>
               <li>
-                <a href="/">Help Center</a>
+                <a href="/">Centrum nápovědy</a>
               </li>
             </ul>
           </div>
+
           <div className="footer-column">
-            <p className="footer-links-title">Legal</p>
+            <p className="footer-links-title">Právní informace</p>
             <ul className="footer-list">
               <li>
-                <a href="/">Privacy Policy</a>
+                <a href="/">Zásady ochrany osobních údajů</a>
               </li>
               <li>
-                <a href="/">Terms of Service</a>
+                <a href="/">Obchodní podmínky</a>
               </li>
               <li>
-                <a href="/">Security</a>
+                <a href="/">Bezpečnost</a>
               </li>
             </ul>
           </div>
@@ -67,9 +70,11 @@ export default function Footer() {
 
         <div className="footer-copyright">
           <p>
-            &copy; {year} ZXC Bank. All rights reserved. ZXC Bank is a
-            registered financial institution.
+            &copy; {year} ZXC Bank. Všechna práva vyhrazena. ZXC Bank je
+            registrovaná finanční instituce působící v souladu s platnými
+            právními předpisy.
           </p>
+
           <div className="footer-socials">
             <a
               href="https://www.facebook.com/"
