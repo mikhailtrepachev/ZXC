@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { getAccessToken, logoutUser } from "../auth/session";
 import "./header_style.css";
 
 const CATEGORIES = [
@@ -15,15 +17,38 @@ const MORE_MENU = [
 
 const NAV = [
   { label: "Účty", href: "/accounts" },
-  { label: "Investice", href: "#invest" },
-  { label: "Platby", href: "#payments" },
+  { label: "Karty", href: "/cards" },
+  { label: "Úvěry", href: "/loans" },
+  { label: "Platby", href: "/payments" },
 ];
 
 const LOGO_URL = "https://i.ytimg.com/vi/TiE9pWAwYOs/maxresdefault.jpg";
 
+function resolveUserLabel(payload) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const raw =
+    payload.email ||
+    payload.userName ||
+    payload.username ||
+    payload.name ||
+    payload.fullName ||
+    "";
+
+  if (typeof raw !== "string") {
+    return "";
+  }
+
+  return raw.trim();
+}
+
 export default function Header() {
   const [activeCategory, setActiveCategory] = useState("private");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -31,6 +56,64 @@ export default function Header() {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCurrentUser() {
+      const token = getAccessToken();
+      const headers = {};
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      try {
+        const response = await fetch("/api/Users/manage/info", {
+          method: "GET",
+          credentials: "include",
+          headers,
+        });
+
+        if (!response.ok) {
+          if (isMounted) {
+            setCurrentUser("");
+            setIsAuthorized(false);
+          }
+          return;
+        }
+
+        const payload = await response.json().catch(() => null);
+        const userLabel = resolveUserLabel(payload);
+
+        if (isMounted) {
+          setCurrentUser(userLabel);
+          setIsAuthorized(true);
+        }
+      } catch {
+        if (isMounted) {
+          setCurrentUser("");
+          setIsAuthorized(false);
+        }
+      }
+    }
+
+    loadCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const cabinetLabel = currentUser ? currentUser : "Internetové bankovnictví";
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser("");
+    setIsAuthorized(false);
+    setMobileOpen(false);
+    window.location.href = "/login";
+  };
 
   return (
     <header className="site-header">
@@ -70,13 +153,14 @@ export default function Header() {
             </ul>
           </nav>
 
-          <a className="site-header__cabinet" href="/accounts" aria-label="Internetové bankovnictví">
-            Internetové bankovnictví <UserIcon />
-          </a>
+          <Link className="site-header__cabinet" to="/accounts" aria-label="Internetové bankovnictví">
+            <span className="site-header__cabinetText">{cabinetLabel}</span>
+            <UserIcon />
+          </Link>
         </div>
 
         <div className="site-header__main">
-          <a className="site-header__logo" href="/accounts" aria-label="Domů">
+          <Link className="site-header__logo" to="/accounts" aria-label="Domů">
             <span className="site-header__logoMark" aria-hidden="true">
               <img className="site-header__logoImg" src={LOGO_URL} alt="" />
             </span>
@@ -85,7 +169,7 @@ export default function Header() {
               <span className="site-header__logoStrong">ZXC</span>{" "}
               <span className="site-header__logoSoft">bank</span>
             </span>
-          </a>
+          </Link>
 
           <nav className="site-header__nav" aria-label="Hlavní menu">
             <ul className="site-header__navList">
@@ -95,27 +179,27 @@ export default function Header() {
                     Produkty <ChevronDown />
                   </summary>
                   <div className="site-header__dropdown">
-                    <a className="site-header__dropdownLink" href="#cards">
+                    <Link className="site-header__dropdownLink" to="/cards">
                       Karty
-                    </a>
-                    <a className="site-header__dropdownLink" href="#accounts">
+                    </Link>
+                    <Link className="site-header__dropdownLink" to="/accounts">
                       Účty
-                    </a>
-                    <a className="site-header__dropdownLink" href="#loans">
+                    </Link>
+                    <Link className="site-header__dropdownLink" to="/loans">
                       Úvěry
-                    </a>
-                    <a className="site-header__dropdownLink" href="#insurance">
-                      Pojištění
-                    </a>
+                    </Link>
+                    <Link className="site-header__dropdownLink" to="/payments">
+                      Platby
+                    </Link>
                   </div>
                 </details>
               </li>
 
               {NAV.map((item) => (
                 <li key={item.href} className="site-header__navItem">
-                  <a className="site-header__navLink" href={item.href}>
+                  <Link className="site-header__navLink" to={item.href}>
                     {item.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -126,21 +210,32 @@ export default function Header() {
               <SearchIcon />
             </button>
 
-            <button
-              className="site-header__button site-header__button--ghost"
-              type="button"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Přihlásit se
-            </button>
-
-            <button
-              className="site-header__button site-header__button--primary"
-              type="button"
-              onClick={() => (window.location.href = "/register")}
-            >
-              Otevřít účet
-            </button>
+            {isAuthorized ? (
+              <button
+                className="site-header__button site-header__button--primary"
+                type="button"
+                onClick={handleLogout}
+              >
+                Odhlásit se
+              </button>
+            ) : (
+              <>
+                <button
+                  className="site-header__button site-header__button--ghost"
+                  type="button"
+                  onClick={() => (window.location.href = "/login")}
+                >
+                  Přihlásit se
+                </button>
+                <button
+                  className="site-header__button site-header__button--primary"
+                  type="button"
+                  onClick={() => (window.location.href = "/register")}
+                >
+                  Otevřít účet
+                </button>
+              </>
+            )}
 
             <button
               className="site-header__burger"
@@ -187,48 +282,57 @@ export default function Header() {
               <a href="#atm" onClick={() => setMobileOpen(false)}>
                 Pobočky a bankomaty
               </a>
-              <a href="/accounts" onClick={() => setMobileOpen(false)}>
-                Internetové bankovnictví
-              </a>
+              <Link to="/accounts" onClick={() => setMobileOpen(false)}>
+                {cabinetLabel}
+              </Link>
             </div>
           </div>
 
           <div className="mobile-menu__section">
             <div className="mobile-menu__label">Navigace</div>
             <div className="mobile-menu__links">
-              <a href="#cards" onClick={() => setMobileOpen(false)}>
+              <Link to="/cards" onClick={() => setMobileOpen(false)}>
                 Karty
-              </a>
-              <a href="#accounts" onClick={() => setMobileOpen(false)}>
+              </Link>
+              <Link to="/accounts" onClick={() => setMobileOpen(false)}>
                 Účty
-              </a>
-              <a href="#loans" onClick={() => setMobileOpen(false)}>
+              </Link>
+              <Link to="/loans" onClick={() => setMobileOpen(false)}>
                 Úvěry
-              </a>
-              <a href="#invest" onClick={() => setMobileOpen(false)}>
-                Investice
-              </a>
-              <a href="#payments" onClick={() => setMobileOpen(false)}>
+              </Link>
+              <Link to="/payments" onClick={() => setMobileOpen(false)}>
                 Platby
-              </a>
+              </Link>
             </div>
           </div>
 
           <div className="mobile-menu__cta">
-            <button
-              className="site-header__button site-header__button--ghost"
-              type="button"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Přihlásit se
-            </button>
-            <button
-              className="site-header__button site-header__button--primary"
-              type="button"
-              onClick={() => (window.location.href = "/register")}
-            >
-              Otevřít účet
-            </button>
+            {isAuthorized ? (
+              <button
+                className="site-header__button site-header__button--primary"
+                type="button"
+                onClick={handleLogout}
+              >
+                Odhlásit se
+              </button>
+            ) : (
+              <>
+                <button
+                  className="site-header__button site-header__button--ghost"
+                  type="button"
+                  onClick={() => (window.location.href = "/login")}
+                >
+                  Přihlásit se
+                </button>
+                <button
+                  className="site-header__button site-header__button--primary"
+                  type="button"
+                  onClick={() => (window.location.href = "/register")}
+                >
+                  Otevřít účet
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
