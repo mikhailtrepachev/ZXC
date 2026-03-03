@@ -1,78 +1,106 @@
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Entities;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
-namespace Microsoft.Extensions.DependencyInjection.Auth.Account;
+namespace ZxcBank.Application.Transactions.Commands.TransferMoney;
 
 public record TransferMoneyCommand : IRequest<int>
 {
-    public required string ToAccountNumber { get; init; } // Номер счета получателя (строка 20 цифр)
+    public required string FromAccountNumber { get; init; } // <-- НОВОЕ ПОЛЕ (Откуда)
+    public required string ToAccountNumber { get; init; }   // (Куда)
     public decimal Amount { get; init; }
 }
 
 public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand, int>
 {
     private readonly IApplicationDbContext _context;
-    private readonly IUser _currentUser; // Сервис для получения ID из токена
+    private readonly IUser _currentUser;
+    private readonly ICurrencyService _currencyService; // Сервис валют
 
-    public TransferMoneyCommandHandler(IApplicationDbContext context, IUser currentUser)
+    public TransferMoneyCommandHandler(
+        IApplicationDbContext context, 
+        IUser currentUser,
+        ICurrencyService currencyService)
     {
         _context = context;
         _currentUser = currentUser;
+        _currencyService = currencyService;
     }
 
     public async Task<int> Handle(TransferMoneyCommand request, CancellationToken cancellationToken)
     {
-        // 0. Валидация суммы
-        if (request.Amount <= 0) throw new Exception("Value must be positive");
+        // 0. Валидация
+        if (request.Amount <= 0) throw new Exception("Сумма перевода должна быть положительной");
 
-        // 1. Находим счет ОТПРАВИТЕЛЯ (того, кто залогинен)
-        // Для хакатона берем первый попавшийся счет юзера
-        string? senderId = _currentUser.Id; 
-        if (senderId == null) throw new UnauthorizedAccessException();
+        string? userId = _currentUser.Id;
+        if (userId == null) throw new UnauthorizedAccessException();
 
-        ZxcBank.Domain.Entities.Account? senderAccount = await _context.Accounts
-            .FirstOrDefaultAsync(a => a.OwnerId == senderId, cancellationToken);
+        // 1. Ищем счет ОТПРАВИТЕЛЯ
+        // БЕЗОПАСНОСТЬ: Ищем по номеру счета И по ID владельца.
+        // Если пользователь попытается списать с чужого счета, запрос вернет null.
+        var senderAccount = await _context.Accounts
+            .FirstOrDefaultAsync(a => a.AccountNumber == request.FromAccountNumber && a.OwnerId == userId, cancellationToken);
         
-        if (senderAccount == null) throw new Exception("У вас нет счета для списания");
+        if (senderAccount == null) 
+            throw new Exception("Счет списания не найден или не принадлежит вам.");
 
-        if (senderAccount.IsFrozen) throw new Exception("Your account is frozen. Please contact support.");
+        if (senderAccount.IsFrozen) 
+            throw new Exception("Ваш счет заморожен. Обратитесь в поддержку.");
+        
+        if (senderAccount.Balance < request.Amount) 
+            throw new Exception("Недостаточно средств на счете.");
 
-        // 2. Находим счет ПОЛУЧАТЕЛЯ по номеру
+        // 2. Ищем счет ПОЛУЧАТЕЛЯ
         var receiverAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.AccountNumber == request.ToAccountNumber, cancellationToken);
 
-        if (receiverAccount == null) throw new Exception("Счет получателя не найден");
+        if (receiverAccount == null) 
+            throw new Exception("Счет получателя не найден.");
         
-        if (receiverAccount.IsFrozen) throw new Exception("This account is frozen. Please contact support.");
+        if (receiverAccount.IsFrozen) 
+            throw new Exception("Счет получателя заморожен.");
 
-        // 3. Проверка: Нельзя переводить самому себе (опционально)
+        // 3. Проверка на перевод самому себе (на тот же счет)
         if (senderAccount.Id == receiverAccount.Id) 
-            throw new Exception("Нельзя переводить самому себе на тот же счет");
+            throw new Exception("Нельзя переводить самому себе на тот же счет.");
 
-        // 4. Проверка БАЛАНСА
-        if (senderAccount.Balance < request.Amount) 
-            throw new Exception("Недостаточно средств");
+        // --- ЛОГИКА КОНВЕРТАЦИИ ---
+        decimal amountToDebit = request.Amount;   // Списываем сколько ввел юзер
+        decimal amountToCredit = request.Amount;  // Зачисляем (по умолчанию столько же)
+        string description = $"Перевод на {request.ToAccountNumber}";
 
-        // --- НАЧАЛО ТРАНЗАКЦИИ (БИЗНЕС-ЛОГИКА) ---
-
-        // Списываем у одного
-        senderAccount.Balance -= request.Amount;
-
-        // Начисляем другому
-        receiverAccount.Balance += request.Amount;
-
-        // Записываем в историю
-        Transaction transaction = new Transaction
+        if (senderAccount.Currency != receiverAccount.Currency)
         {
-            FromAccountId = senderAccount.AccountNumber,
-            ToAccountId = receiverAccount.AccountNumber,
-            Amount = request.Amount,
-            Description = $"Money transfer to {request.ToAccountNumber}"
+            // Конвертация через наш сервис
+            amountToCredit = await _currencyService.ConvertAsync(
+                request.Amount, 
+                senderAccount.Currency, 
+                receiverAccount.Currency
+            );
+
+            // Округляем до копеек
+            amountToCredit = Math.Round(amountToCredit, 2);
+            
+            description += $" (Конвертация: {request.Amount} {senderAccount.Currency} -> {amountToCredit} {receiverAccount.Currency})";
+        }
+
+        // 4. Выполняем транзакцию (Меняем балансы)
+        senderAccount.Balance -= amountToDebit;
+        receiverAccount.Balance += amountToCredit;
+
+        // 5. Сохраняем историю
+        var transaction = new Domain.Entities.Transaction
+        {
+            FromAccountId = senderAccount.AccountNumber,   // Используем ID для связи (Foreign Key)
+            ToAccountId = receiverAccount.AccountNumber,   // Используем ID для связи
+            Amount = amountToDebit,             // Пишем сумму списания
+            Description = description
         };
 
         _context.Transactions.Add(transaction);
 
-        // Сохраняем ВСЁ разом. Если тут упадет ошибка, база откатится сама.
+        // Сохраняем изменения в БД (транзакционно)
         await _context.SaveChangesAsync(cancellationToken);
 
         return transaction.Id;
