@@ -1,3 +1,4 @@
+import "./Footer.css";
 import { LuFacebook, LuInstagram, LuGithub, LuTwitter } from "react-icons/lu";
 
 export default function Footer() {
@@ -62,7 +63,7 @@ export default function Footer() {
       <div className="footer-copyright">
         <p>
           &copy; 2026 ZXC Bank. All rights reserved. ZXC Bank is a registered
-          financial institution. Services are subject to terms and conditions.
+          financial institution.
         </p>
         <div className="footer-socials">
           <a href="https://www.facebook.com/">
