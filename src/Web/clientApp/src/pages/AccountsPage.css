@@ -6,8 +6,6 @@
   --ab-line: rgba(255, 255, 255, 0.14);
   --ab-text: rgba(255, 255, 255, 0.92);
   --ab-muted: rgba(255, 255, 255, 0.68);
-  --ab-accent: #d83f87;
-  --ab-accent-soft: #e98074;
   --ab-good: #4ade80;
 
   min-height: calc(100vh - 120px);
@@ -68,6 +66,7 @@
 .account-card__content {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .account-card__balance {
@@ -80,6 +79,8 @@
   margin: 0;
   font-size: 1.4rem;
   color: var(--ab-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .account-card__chip {
@@ -93,15 +94,25 @@
 }
 
 .credit-offer {
+  width: 100%;
   margin: 12px 0;
   padding: 16px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.16);
+  text-align: left;
+  color: var(--ab-text);
+  cursor: pointer;
   background:
-          radial-gradient(circle at 95% 10%, rgba(253, 199, 86, 0.85) 0%, rgba(253, 199, 86, 0.85) 10%, transparent 11%),
-          radial-gradient(circle at 90% 80%, rgba(253, 199, 86, 0.9) 0%, rgba(253, 199, 86, 0.9) 10%, transparent 11%);
+    radial-gradient(circle at 95% 10%, rgba(253, 199, 86, 0.85) 0%, rgba(253, 199, 86, 0.85) 10%, transparent 11%),
+    radial-gradient(circle at 90% 80%, rgba(253, 199, 86, 0.9) 0%, rgba(253, 199, 86, 0.9) 10%, transparent 11%),
     linear-gradient(130deg, rgba(122, 92, 255, 0.45), rgba(216, 63, 135, 0.36));
   box-shadow: 0 20px 34px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.credit-offer:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 36px rgba(0, 0, 0, 0.26);
 }
 
 .credit-offer__title {
@@ -113,6 +124,48 @@
 .credit-offer__text {
   margin: 0;
   color: rgba(255, 255, 255, 0.86);
+}
+
+.cards-section {
+  margin-top: 2px;
+}
+
+.cards-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.cards-section__head h3 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.cards-section__head button {
+  width: auto;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ab-line);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ab-text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.cards-state {
+  margin: 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ab-line);
+  color: var(--ab-muted);
+}
+
+.cards-state--error {
+  color: #ff9292;
 }
 
 .accounts-main {
@@ -312,6 +365,114 @@
   background: rgba(74, 222, 128, 0.16);
 }
 
+.card-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 7, 18, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 100;
+}
+
+.card-modal {
+  width: min(560px, 96vw);
+  border-radius: 18px;
+  border: 1px solid var(--ab-line);
+  background: linear-gradient(160deg, rgba(47, 35, 92, 0.98), rgba(37, 27, 72, 0.98));
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+}
+
+.card-modal h2 {
+  margin: 0 0 8px;
+  font-size: 2.8rem;
+}
+
+.card-modal__intro {
+  margin: 0 0 10px;
+  color: var(--ab-muted);
+}
+
+.card-modal__terms {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  display: grid;
+  gap: 8px;
+}
+
+.card-modal__checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 1.4rem;
+}
+
+.card-modal__checkbox input {
+  margin-top: 2px;
+}
+
+.card-modal__pin {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  font-size: 1.4rem;
+}
+
+.card-modal__pin input {
+  width: 140px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.6rem;
+  letter-spacing: 0.1em;
+}
+
+.card-modal__pin input:focus {
+  outline: none;
+  border-color: #e98074;
+  box-shadow: 0 0 0 3px rgba(233, 128, 116, 0.22);
+}
+
+.card-modal__error {
+  margin: 10px 0 0;
+  color: #ff9393;
+  font-size: 1.3rem;
+}
+
+.card-modal__actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.card-modal__button {
+  width: auto;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: #fff;
+}
+
+.card-modal__button--ghost {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.card-modal__button--primary {
+  background: linear-gradient(90deg, #d83f87, #e98074);
+}
+
+.card-modal__button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1120px) {
   .accounts-shell {
     grid-template-columns: 1fr;
@@ -343,6 +504,10 @@
 
   .panel__head {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .card-modal__actions {
     flex-direction: column;
   }
 }

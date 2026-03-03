@@ -90,12 +90,11 @@ export default function CreateAccountPage() {
       return;
     }
 
-    const loginResponse = await fetch("/api/Users/login", {
+    const loginResponse = await fetch("/api/Clients/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
       body: JSON.stringify({
         email,
         password,
@@ -103,7 +102,7 @@ export default function CreateAccountPage() {
     });
 
     if (loginResponse.ok) {
-      const payload = await loginResponse.json().catch(() => null);
+      const payload = await loginResponse.text().catch(() => "");
       persistSession(payload);
       window.location.href = "/accounts";
       return;

@@ -1,48 +1,33 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAccessToken, logoutUser } from "../auth/session";
+import {
+  getAccessToken,
+  getCurrentUserFromToken,
+  isAuthenticated as checkAuthentication,
+  logoutUser,
+} from "../auth/session";
 import "./header_style.css";
 
 const CATEGORIES = [
-  { id: "private", label: "Pro občany", href: "#private" },
+  { id: "private", label: "Pro obcany", href: "#private" },
   { id: "business", label: "Pro podnikatele", href: "#business" },
   { id: "premium", label: "Premium", href: "#premium" },
 ];
 
 const MORE_MENU = [
   { label: "Podpora", href: "#support" },
-  { label: "Pobočky a bankomaty", href: "#atm" },
+  { label: "Pobocky a bankomaty", href: "#atm" },
   { label: "Kontakty", href: "#contacts" },
 ];
 
 const NAV = [
-  { label: "Účty", href: "/accounts" },
+  { label: "Ucty", href: "/accounts" },
   { label: "Karty", href: "/cards" },
-  { label: "Úvěry", href: "/loans" },
+  { label: "Uvery", href: "/loans" },
   { label: "Platby", href: "/payments" },
 ];
 
 const LOGO_URL = "https://i.ytimg.com/vi/TiE9pWAwYOs/maxresdefault.jpg";
-
-function resolveUserLabel(payload) {
-  if (!payload || typeof payload !== "object") {
-    return "";
-  }
-
-  const raw =
-    payload.email ||
-    payload.userName ||
-    payload.username ||
-    payload.name ||
-    payload.fullName ||
-    "";
-
-  if (typeof raw !== "string") {
-    return "";
-  }
-
-  return raw.trim();
-}
 
 export default function Header() {
   const [activeCategory, setActiveCategory] = useState("private");
@@ -60,52 +45,54 @@ export default function Header() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadCurrentUser() {
-      const token = getAccessToken();
-      const headers = {};
+    async function loadAuthState() {
+      const fallbackLabel = getCurrentUserFromToken();
+      if (isMounted && fallbackLabel) {
+        setCurrentUser(fallbackLabel);
+      }
 
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
+      const authenticated = await checkAuthentication();
+      if (!isMounted) {
+        return;
+      }
+
+      setIsAuthorized(authenticated);
+
+      if (!authenticated) {
+        setCurrentUser("");
+        return;
       }
 
       try {
-        const response = await fetch("/api/Users/manage/info", {
+        const token = getAccessToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await fetch("/api/Accounts/info", {
           method: "GET",
-          credentials: "include",
           headers,
         });
 
         if (!response.ok) {
-          if (isMounted) {
-            setCurrentUser("");
-            setIsAuthorized(false);
-          }
           return;
         }
 
         const payload = await response.json().catch(() => null);
-        const userLabel = resolveUserLabel(payload);
-
-        if (isMounted) {
-          setCurrentUser(userLabel);
-          setIsAuthorized(true);
+        const label = payload?.email || payload?.fullName || fallbackLabel;
+        if (label) {
+          setCurrentUser(label);
         }
       } catch {
-        if (isMounted) {
-          setCurrentUser("");
-          setIsAuthorized(false);
-        }
+        // keep token-derived label if API call failed
       }
     }
 
-    loadCurrentUser();
+    loadAuthState();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  const cabinetLabel = currentUser ? currentUser : "Internetové bankovnictví";
+  const cabinetLabel = currentUser || "Internetove bankovnictvi";
 
   const handleLogout = async () => {
     await logoutUser();
@@ -138,7 +125,7 @@ export default function Header() {
               <li className="site-header__categoriesItem">
                 <details className="site-header__more">
                   <summary className="site-header__categoryLink site-header__moreSummary">
-                    Více <ChevronDown />
+                    Vice <ChevronDown />
                   </summary>
 
                   <div className="site-header__moreDropdown">
@@ -153,14 +140,14 @@ export default function Header() {
             </ul>
           </nav>
 
-          <Link className="site-header__cabinet" to="/accounts" aria-label="Internetové bankovnictví">
+          <Link className="site-header__cabinet" to="/accounts" aria-label="Internetove bankovnictvi">
             <span className="site-header__cabinetText">{cabinetLabel}</span>
             <UserIcon />
           </Link>
         </div>
 
         <div className="site-header__main">
-          <Link className="site-header__logo" to="/accounts" aria-label="Domů">
+          <Link className="site-header__logo" to="/accounts" aria-label="Domu">
             <span className="site-header__logoMark" aria-hidden="true">
               <img className="site-header__logoImg" src={LOGO_URL} alt="" />
             </span>
@@ -171,7 +158,7 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="site-header__nav" aria-label="Hlavní menu">
+          <nav className="site-header__nav" aria-label="Hlavni menu">
             <ul className="site-header__navList">
               <li className="site-header__navItem">
                 <details className="site-header__details">
@@ -183,10 +170,10 @@ export default function Header() {
                       Karty
                     </Link>
                     <Link className="site-header__dropdownLink" to="/accounts">
-                      Účty
+                      Ucty
                     </Link>
                     <Link className="site-header__dropdownLink" to="/loans">
-                      Úvěry
+                      Uvery
                     </Link>
                     <Link className="site-header__dropdownLink" to="/payments">
                       Platby
@@ -216,7 +203,7 @@ export default function Header() {
                 type="button"
                 onClick={handleLogout}
               >
-                Odhlásit se
+                Odhlasit se
               </button>
             ) : (
               <>
@@ -225,14 +212,14 @@ export default function Header() {
                   type="button"
                   onClick={() => (window.location.href = "/login")}
                 >
-                  Přihlásit se
+                  Prihlasit se
                 </button>
                 <button
                   className="site-header__button site-header__button--primary"
                   type="button"
                   onClick={() => (window.location.href = "/register")}
                 >
-                  Otevřít účet
+                  Otevrit ucet
                 </button>
               </>
             )}
@@ -240,7 +227,7 @@ export default function Header() {
             <button
               className="site-header__burger"
               type="button"
-              aria-label={mobileOpen ? "Zavřít menu" : "Otevřít menu"}
+              aria-label={mobileOpen ? "Zavrit menu" : "Otevrit menu"}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((value) => !value)}
             >
@@ -258,7 +245,7 @@ export default function Header() {
               className="site-header__iconButton"
               type="button"
               onClick={() => setMobileOpen(false)}
-              aria-label="Zavřít"
+              aria-label="Zavrit"
             >
               <CloseIcon />
             </button>
@@ -268,7 +255,7 @@ export default function Header() {
             <div className="mobile-menu__label">Kategorie</div>
             <div className="mobile-menu__links">
               <a href="#private" onClick={() => setMobileOpen(false)}>
-                Pro občany
+                Pro obcany
               </a>
               <a href="#business" onClick={() => setMobileOpen(false)}>
                 Pro podnikatele
@@ -280,7 +267,7 @@ export default function Header() {
                 Podpora
               </a>
               <a href="#atm" onClick={() => setMobileOpen(false)}>
-                Pobočky a bankomaty
+                Pobocky a bankomaty
               </a>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
                 {cabinetLabel}
@@ -295,10 +282,10 @@ export default function Header() {
                 Karty
               </Link>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
-                Účty
+                Ucty
               </Link>
               <Link to="/loans" onClick={() => setMobileOpen(false)}>
-                Úvěry
+                Uvery
               </Link>
               <Link to="/payments" onClick={() => setMobileOpen(false)}>
                 Platby
@@ -313,7 +300,7 @@ export default function Header() {
                 type="button"
                 onClick={handleLogout}
               >
-                Odhlásit se
+                Odhlasit se
               </button>
             ) : (
               <>
@@ -322,14 +309,14 @@ export default function Header() {
                   type="button"
                   onClick={() => (window.location.href = "/login")}
                 >
-                  Přihlásit se
+                  Prihlasit se
                 </button>
                 <button
                   className="site-header__button site-header__button--primary"
                   type="button"
                   onClick={() => (window.location.href = "/register")}
                 >
-                  Otevřít účet
+                  Otevrit ucet
                 </button>
               </>
             )}
