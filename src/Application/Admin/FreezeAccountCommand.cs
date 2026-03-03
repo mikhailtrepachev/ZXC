@@ -22,7 +22,7 @@ public class FreezeAccountCommandHandler : IRequestHandler<FreezeAccountCommand>
         Domain.Entities.Account? account = await _context.Accounts
             .FirstOrDefaultAsync(a => a.Id == request.AccountId, cancellationToken);
 
-        if (account == null) throw new Exception("Счет не найден");
+        if (account == null) throw new Exception("Účet nebyl nalezen");
 
         // Меняем статус
         account.IsFrozen = request.Freeze;

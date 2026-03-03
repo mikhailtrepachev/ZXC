@@ -46,7 +46,7 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
         if (account == null) 
         {
             // Важно не говорить "Счет чужой", лучше просто "Не найден" для безопасности
-            throw new Exception($"Счет с номером {request.AccountNumber} не найден.");
+            throw new Exception($"Účet s číslem {request.AccountNumber} nebyl nalezen.");
         }
 
         // 2. Проверка лимита (3 карты на один счет)
@@ -55,7 +55,7 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
 
         if (existingCardsCount >= 3)
         {
-            throw new Exception("Для этого счета достигнут лимит карт (максимум 3).");
+            throw new Exception("Pro tento účet byl dosažen limit karet (maximálně 3).");
         }
 
         // 3. Получаем имя для карты (Embossing name)

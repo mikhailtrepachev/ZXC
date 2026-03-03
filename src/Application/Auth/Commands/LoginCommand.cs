@@ -24,7 +24,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, string>
 
         if (token == null)
         {
-            throw new UnauthorizedAccessException("Неверный логин или пароль");
+            throw new UnauthorizedAccessException("Neplatné přihlašovací údaje");
         }
 
         return token;

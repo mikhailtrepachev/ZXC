@@ -59,8 +59,8 @@ public class GetTransactionsQueryHandler : IRequestHandler<GetTransactionsQuery,
                 Type = isIncome ? TransactionType.Income : TransactionType.Expense,
                 
                 CounterpartyAccount = isIncome 
-                    ? t.FromAccountId ?? "Банкомат"  // Берем само поле, раз оно хранит номер
-                    : t.ToAccountId ?? "Неизвестно",
+                    ? t.FromAccountId ?? "Bankomat"  // Берем само поле, раз оно хранит номер
+                    : t.ToAccountId ?? "Neznámé",
                 
                 Description = t.Description
             });

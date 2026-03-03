@@ -44,7 +44,7 @@ public class GetAccountInfoQueryHandler : IRequestHandler<GetAccountInfoQuery, C
         // 4. Собираем ответ
         return new Account.ClientProfileDto
         {
-            FullName = userName ?? "Пользователь",
+            FullName = userName ?? "User",
             Email = userName ?? string.Empty,
             
             DailyTransferLimit = client.DailyTransferLimit,
