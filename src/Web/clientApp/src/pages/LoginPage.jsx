@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./LoginPage.css";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,39 +27,42 @@ export default function LoginPage() {
       return;
     }
 
-    // если используется cookie-auth — больше ничего не нужно
-    // если JWT — можно сохранить токен:
-    // const data = await response.json();
-    // localStorage.setItem("token", data.accessToken);
-
     window.location.href = "/";
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "100px auto" }}>
-      <h2>Login</h2>
+  <div className="login-container">
+    <div className="login-card">
+      <h2>Sign in</h2>
 
       <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div className="input-group">
+          <label>Email</label>
+          <input
+            type="email"
+            placeholder="example@mail.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="input-group">
+          <label>Password</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
         <button type="submit">Login</button>
       </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="error-text">{error}</p>}
     </div>
-  );
+  </div>
+);
 }
