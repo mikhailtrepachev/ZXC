@@ -1,5 +1,49 @@
 import { useState } from "react";
 import "./CreateAccountPage.css";
+import { persistSession } from "../auth/session";
+
+const PASSWORD_POLICY_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/;
+
+async function extractApiError(response, fallback) {
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+
+    if (contentType.includes("application/json")) {
+      const payload = await response.json();
+
+      if (typeof payload === "string" && payload.trim()) {
+        return payload;
+      }
+
+      if (payload?.detail) {
+        return payload.detail;
+      }
+
+      if (payload?.title) {
+        return payload.title;
+      }
+
+      if (payload?.errors && typeof payload.errors === "object") {
+        const firstKey = Object.keys(payload.errors)[0];
+        const firstError = payload.errors[firstKey]?.[0];
+
+        if (firstError) {
+          return firstError;
+        }
+      }
+    }
+
+    const text = await response.text();
+    if (text?.trim()) {
+      return text;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+}
 
 export default function CreateAccountPage() {
   const [email, setEmail] = useState("");
@@ -7,6 +51,7 @@ export default function CreateAccountPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,11 +59,20 @@ export default function CreateAccountPage() {
     setSuccess("");
 
     if (password !== confirmPassword) {
-      setError("Hesla se neshodují.");
+      setError("Hesla se neshoduji.");
       return;
     }
 
-    const response = await fetch("/api/Users/register", {
+    if (!PASSWORD_POLICY_REGEX.test(password)) {
+      setError(
+        "Heslo musi mit alespon 6 znaku, velke i male pismeno, cislo a specialni znak (napr. _, !, @)."
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const response = await fetch("/api/Clients/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -30,17 +84,39 @@ export default function CreateAccountPage() {
     });
 
     if (!response.ok) {
-      setError("Registrace se nezdařila.");
+      const apiError = await extractApiError(response, "Registrace se nezdarila.");
+      setError(apiError);
+      setIsSubmitting(false);
       return;
     }
 
-    setSuccess("Účet byl úspěšně vytvořen.");
+    const loginResponse = await fetch("/api/Users/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    if (loginResponse.ok) {
+      const payload = await loginResponse.json().catch(() => null);
+      persistSession(payload);
+      window.location.href = "/accounts";
+      return;
+    }
+
+    setSuccess("Ucet byl uspesne vytvoren v databazi. Nyni se prihlaste.");
+    setIsSubmitting(false);
   };
 
   return (
     <div className="register-container">
       <div className="register-card">
-        <h2>Vytvoření účtu</h2>
+        <h2>Vytvoreni uctu</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
@@ -57,14 +133,18 @@ export default function CreateAccountPage() {
             <label>Heslo</label>
             <input
               type="password"
+              minLength={6}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <p className="password-hint">
+              Min. 6 znaku: velke + male pismeno, cislo, specialni znak (napr. _, !, @).
+            </p>
           </div>
 
           <div className="input-group">
-            <label>Potvrzení hesla</label>
+            <label>Potvrzeni hesla</label>
             <input
               type="password"
               required
@@ -73,12 +153,14 @@ export default function CreateAccountPage() {
             />
           </div>
 
-          <button type="submit">Registrovat</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Registruji..." : "Registrovat"}
+          </button>
         </form>
 
         <p className="switch-link">
-          Už máte účet?{" "}
-          <span onClick={() => (window.location.href = "/login")}>Zpět na přihlášení</span>
+          Uz mate ucet?{" "}
+          <span onClick={() => (window.location.href = "/login")}>Zpet na prihlaseni</span>
         </p>
 
         {error && <p className="error-text">{error}</p>}

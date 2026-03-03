@@ -1,6 +1,6 @@
 import "./Footer.css";
 import { LuFacebook, LuInstagram, LuGithub, LuTwitter } from "react-icons/lu";
-
+import "./Footer.css"
 export default function Footer() {
   const year = new Date().getFullYear();
 
