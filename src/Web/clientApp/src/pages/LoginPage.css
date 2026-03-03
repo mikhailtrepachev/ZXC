@@ -11,11 +11,6 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  font-family: "Inter", sans-serif;
-}
-
 /* ===== ФОН ===== */
 .login-container {
   height: 100vh;
@@ -24,6 +19,7 @@ body {
   align-items: center;
   background: linear-gradient(135deg, #2A1B3D, #44318D);
   padding: 20px;
+  font-family: "Inter", sans-serif;
 }
 
 /* ===== КАРТОЧКА ===== */
@@ -79,7 +75,7 @@ body {
 }
 
 /* ===== BUTTON ===== */
-button {
+.login-card button {
   width: 100%;
   padding: 14px;
   margin-top: 15px;
@@ -95,12 +91,12 @@ button {
   letter-spacing: 1px;
 }
 
-button:hover {
+.login-card button:hover {
   background: #E98074;
   transform: translateY(-2px);
 }
 
-button:active {
+.login-card button:active {
   transform: translateY(0);
 }
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./LoginPage.css";
+import { persistSession } from "../auth/session";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,63 +12,65 @@ export default function LoginPage() {
     setError("");
 
     const response = await fetch("/api/Users/login", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  credentials: "include",
-  body: JSON.stringify({
-    email,
-    password
-  })
-});
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
 
     if (!response.ok) {
-      setError("Неверный логин или пароль");
+      setError("Neplatný e-mail nebo heslo.");
       return;
     }
 
-    window.location.href = "/";
+    const payload = await response.json().catch(() => null);
+    persistSession(payload);
+
+    window.location.href = "/accounts";
   };
 
   return (
-  <div className="login-container">
-    <div className="login-card">
-      <h2>Sign in</h2>
+    <div className="login-container">
+      <div className="login-card">
+        <h2>Přihlášení</h2>
 
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <label>Email</label>
-          <input
-            type="email"
-            placeholder="example@mail.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>E-mail</label>
+            <input
+              type="email"
+              placeholder="uzivatel@email.cz"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-        <div className="input-group">
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="••••••••"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+          <div className="input-group">
+            <label>Heslo</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-        <button type="submit">Login</button>
-      </form>
+          <button type="submit">Přihlásit se</button>
+        </form>
+
         <p className="switch-link">
-        Don’t have an account?{" "}
-        <span onClick={() => (window.location.href = "/register")}>
-            Create one
-        </span>
+          Nemáte účet?{" "}
+          <span onClick={() => (window.location.href = "/register")}>Vytvořit účet</span>
         </p>
-      {error && <p className="error-text">{error}</p>}
+        {error && <p className="error-text">{error}</p>}
+      </div>
     </div>
-  </div>
-);
+  );
 }

@@ -53,7 +53,7 @@
   box-shadow: 0 0 0 3px rgba(216, 63, 135, 0.3);
 }
 
-button {
+.register-card button {
   width: 100%;
   padding: 14px;
   margin-top: 10px;
@@ -67,7 +67,7 @@ button {
   text-transform: uppercase;
 }
 
-button:hover {
+.register-card button:hover {
   background: #E98074;
 }
 
