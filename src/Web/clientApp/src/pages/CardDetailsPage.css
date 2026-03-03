@@ -1,0 +1,205 @@
+.card-details-page {
+  min-height: calc(100vh - 150px);
+  padding: 2.4rem;
+  background: linear-gradient(140deg, #171337 0%, #261f5e 55%, #1b173f 100%);
+  font-family: "Manrope", system-ui, sans-serif;
+}
+
+.card-details-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 330px 1fr;
+  gap: 2rem;
+}
+
+.card-sidebar,
+.card-main-content {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.card-sidebar {
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+}
+
+.bank-card-preview {
+  width: 100%;
+  min-height: 200px;
+  border-radius: 16px;
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  color: #ffffff;
+  background: radial-gradient(
+    circle at top right,
+    #7f76ff 0%,
+    #6644d6 45%,
+    #2b1f66 100%
+  );
+}
+
+.chip {
+  width: 40px;
+  height: 30px;
+  border-radius: 8px;
+  margin-bottom: auto;
+  background: linear-gradient(135deg, #f5dd9d 0%, #cca750 100%);
+}
+
+.preview-name {
+  font-size: 1.4rem;
+  opacity: 0.92;
+}
+
+.preview-number {
+  font-size: 2rem;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.preview-holder {
+  font-size: 1.4rem;
+  opacity: 0.84;
+}
+
+.card-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.card-tab {
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1.5rem 1.1rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.card-tab:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.card-tab.active {
+  border-color: #c485ff;
+  background: linear-gradient(
+    100deg,
+    rgba(186, 84, 255, 0.28),
+    rgba(119, 81, 255, 0.2)
+  );
+  color: #fff;
+}
+
+.card-main-content {
+  padding: 2rem;
+}
+
+.card-details-panel h2 {
+  font-size: 2.1rem;
+  color: #fff;
+  margin-bottom: 1.4rem;
+}
+
+.card-details-list,
+.limits-list,
+.info-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.tx-row,
+.limit-card,
+.info-card {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 14px;
+  padding: 1.2rem;
+  color: #fff;
+}
+
+.tx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tx-merchant,
+.limit-header p:first-child,
+.info-value {
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+.tx-date,
+.tx-status,
+.info-label,
+.limit-header p:last-child {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tx-right {
+  text-align: right;
+}
+
+.tx-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tx-amount.outgoing {
+  color: #ff8794;
+}
+
+.tx-amount.incoming {
+  color: #64e8b0;
+}
+
+.info-grid {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.limit-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.limit-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.limit-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #cf78ff 0%, #82a8ff 100%);
+}
+
+@media (max-width: 920px) {
+  .card-details-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

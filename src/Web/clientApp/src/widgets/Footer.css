@@ -23,7 +23,7 @@
 .footer-links {
   display: flex;
   gap: 35rem;
-  margin-bottom: 4rem;
+  margin-bottom: rem;
 }
 
 .footer-links-title {
