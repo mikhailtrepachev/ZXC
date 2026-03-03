@@ -1,24 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  getAccessToken,
-  getCurrentUserFromToken,
-  isAuthenticated as checkAuthentication,
-  logoutUser,
-} from "../auth/session";
+import { getAccessToken, logoutUser } from "../auth/session";
 import "./header_style.css";
-
-const CATEGORIES = [
-  { id: "private", label: "Pro obcany", href: "#private" },
-  { id: "business", label: "Pro podnikatele", href: "#business" },
-  { id: "premium", label: "Premium", href: "#premium" },
-];
-
-const MORE_MENU = [
-  { label: "Podpora", href: "#support" },
-  { label: "Pobocky a bankomaty", href: "#atm" },
-  { label: "Kontakty", href: "#contacts" },
-];
 
 const NAV = [
   { label: "Ucty", href: "/accounts" },
@@ -29,11 +12,25 @@ const NAV = [
 
 const LOGO_URL = "https://i.ytimg.com/vi/TiE9pWAwYOs/maxresdefault.jpg";
 
+function resolveUserLabel(payload) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const raw = payload.email || payload.userName || payload.username || payload.name || payload.fullName || "";
+  if (typeof raw !== "string") {
+    return "";
+  }
+
+  return raw.trim();
+}
+
 export default function Header() {
-  const [activeCategory, setActiveCategory] = useState("private");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -45,50 +42,76 @@ export default function Header() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadAuthState() {
-      const fallbackLabel = getCurrentUserFromToken();
-      if (isMounted && fallbackLabel) {
-        setCurrentUser(fallbackLabel);
-      }
-
-      const authenticated = await checkAuthentication();
-      if (!isMounted) {
+    async function loadCurrentUser() {
+      const token = getAccessToken();
+      if (!token) {
+        if (isMounted) {
+          setCurrentUser("");
+          setIsAuthorized(false);
+        }
         return;
       }
 
-      setIsAuthorized(authenticated);
+      const headers = { Authorization: `Bearer ${token}` };
+      const endpoints = ["/api/Accounts/info", "/api/Users/manage/info"];
 
-      if (!authenticated) {
-        setCurrentUser("");
-        return;
-      }
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "GET",
+            credentials: "include",
+            headers,
+          });
 
-      try {
-        const token = getAccessToken();
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch("/api/Accounts/info", {
-          method: "GET",
-          headers,
-        });
+          if (!response.ok) {
+            continue;
+          }
 
-        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          const userLabel = resolveUserLabel(payload);
+
+          if (isMounted) {
+            setCurrentUser(userLabel);
+            setIsAuthorized(true);
+          }
           return;
+        } catch {
+          // try next endpoint
         }
+      }
 
-        const payload = await response.json().catch(() => null);
-        const label = payload?.email || payload?.fullName || fallbackLabel;
-        if (label) {
-          setCurrentUser(label);
-        }
-      } catch {
-        // keep token-derived label if API call failed
+      if (isMounted) {
+        setCurrentUser("");
+        setIsAuthorized(false);
       }
     }
 
-    loadAuthState();
+    loadCurrentUser();
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!userMenuRef.current?.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
@@ -99,53 +122,18 @@ export default function Header() {
     setCurrentUser("");
     setIsAuthorized(false);
     setMobileOpen(false);
+    setUserMenuOpen(false);
     window.location.href = "/login";
+  };
+
+  const handleUserSettings = () => {
+    setUserMenuOpen(false);
+    window.location.href = "/accounts";
   };
 
   return (
     <header className="site-header">
       <div className="site-header__container">
-        <div className="site-header__top">
-          <nav className="site-header__categories" aria-label="Kategorie">
-            <ul className="site-header__categoriesList">
-              {CATEGORIES.map((category) => (
-                <li key={category.id} className="site-header__categoriesItem">
-                  <a
-                    className={`site-header__categoryLink ${
-                      activeCategory === category.id ? "is-active" : ""
-                    }`}
-                    href={category.href}
-                    onClick={() => setActiveCategory(category.id)}
-                  >
-                    {category.label}
-                  </a>
-                </li>
-              ))}
-
-              <li className="site-header__categoriesItem">
-                <details className="site-header__more">
-                  <summary className="site-header__categoryLink site-header__moreSummary">
-                    Vice <ChevronDown />
-                  </summary>
-
-                  <div className="site-header__moreDropdown">
-                    {MORE_MENU.map((item) => (
-                      <a key={item.href} className="site-header__moreLink" href={item.href}>
-                        {item.label}
-                      </a>
-                    ))}
-                  </div>
-                </details>
-              </li>
-            </ul>
-          </nav>
-
-          <Link className="site-header__cabinet" to="/accounts" aria-label="Internetove bankovnictvi">
-            <span className="site-header__cabinetText">{cabinetLabel}</span>
-            <UserIcon />
-          </Link>
-        </div>
-
         <div className="site-header__main">
           <Link className="site-header__logo" to="/accounts" aria-label="Domu">
             <span className="site-header__logoMark" aria-hidden="true">
@@ -193,18 +181,30 @@ export default function Header() {
           </nav>
 
           <div className="site-header__actions">
-            <button className="site-header__iconButton" type="button" aria-label="Hledat">
-              <SearchIcon />
-            </button>
-
             {isAuthorized ? (
-              <button
-                className="site-header__button site-header__button--primary"
-                type="button"
-                onClick={handleLogout}
-              >
-                Odhlasit se
-              </button>
+              <div className="site-header__userMenu" ref={userMenuRef}>
+                <button
+                  className="site-header__cabinet site-header__cabinetButton"
+                  type="button"
+                  onClick={() => setUserMenuOpen((value) => !value)}
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                >
+                  <span className="site-header__cabinetText">{cabinetLabel}</span>
+                  <UserIcon />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="site-header__userDropdown" role="menu">
+                    <button className="site-header__userDropdownButton" type="button" onClick={handleUserSettings}>
+                      Nastaveni uzivatele
+                    </button>
+                    <button className="site-header__userDropdownButton" type="button" onClick={handleLogout}>
+                      Odhlasit se
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <button
@@ -295,11 +295,7 @@ export default function Header() {
 
           <div className="mobile-menu__cta">
             {isAuthorized ? (
-              <button
-                className="site-header__button site-header__button--primary"
-                type="button"
-                onClick={handleLogout}
-              >
+              <button className="site-header__button site-header__button--primary" type="button" onClick={handleLogout}>
                 Odhlasit se
               </button>
             ) : (
@@ -327,19 +323,6 @@ export default function Header() {
   );
 }
 
-function SearchIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function ChevronDown() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -357,17 +340,8 @@ function ChevronDown() {
 function UserIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M4.5 20a7.5 7.5 0 0 1 15 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -383,12 +357,7 @@ function MenuIcon() {
 function CloseIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
