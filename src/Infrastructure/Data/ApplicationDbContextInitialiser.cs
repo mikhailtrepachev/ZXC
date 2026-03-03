@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ZxcBank.Domain.Entities;
 
 namespace ZxcBank.Infrastructure.Data;
 
@@ -65,29 +66,26 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        // Default roles
+        // 1. Создание Ролей
         var administratorRole = new IdentityRole(Roles.Administrator);
-
         if (_roleManager.Roles.All(r => r.Name != administratorRole.Name))
         {
             await _roleManager.CreateAsync(administratorRole);
         }
         
-        var clientRole = new IdentityRole(Roles.Client); // Убедись, что Roles.Client == "Client"
-
+        var clientRole = new IdentityRole(Roles.Client);
         if (_roleManager.Roles.All(r => r.Name != clientRole.Name))
         {
             await _roleManager.CreateAsync(clientRole);
         }
 
         var managerRole = new IdentityRole(Roles.Manager);
-
         if (_roleManager.Roles.All(r => r.Name != managerRole.Name))
         {
             await _roleManager.CreateAsync(managerRole);
         }
 
-        // Default users
+        // 2. Создание Администратора
         var administrator = new ApplicationUser { UserName = "administrator@localhost", Email = "administrator@localhost" };
 
         if (_userManager.Users.All(u => u.UserName != administrator.UserName))
@@ -97,6 +95,64 @@ public class ApplicationDbContextInitialiser
             {
                 await _userManager.AddToRolesAsync(administrator, new [] { administratorRole.Name });
             }
+        }
+        
+        // 3. Пользователь SENDER (Богатый)
+        var sender = new ApplicationUser { UserName = "sender@bank.com", Email = "sender@bank.com" };
+        
+        if (_userManager.Users.All(u => u.UserName != sender.UserName))
+        {
+            await _userManager.CreateAsync(sender, "Password123!");
+            await _userManager.AddToRoleAsync(sender, Roles.Client);
+
+            var senderClient = new Client
+            {
+                UserId = sender.Id,
+                DailyTransferLimit = 50000,
+                InternetPaymentLimit = 10000
+            };
+            _context.Clients.Add(senderClient);
+
+            var senderAccount = new Account
+            {
+                OwnerId = sender.Id,
+                AccountNumber = "40817810000000000001", 
+                Balance = 100000, 
+                IsFrozen = false
+            };
+            _context.Accounts.Add(senderAccount);
+            
+            // --- ВАЖНО: СОХРАНЯЕМ ПЕРВОГО КЛИЕНТА ---
+            await _context.SaveChangesAsync(); 
+        }
+
+        // 4. Пользователь RECEIVER (Получатель)
+        var receiver = new ApplicationUser { UserName = "receiver@bank.com", Email = "receiver@bank.com" };
+
+        if (_userManager.Users.All(u => u.UserName != receiver.UserName))
+        {
+            await _userManager.CreateAsync(receiver, "Password123!");
+            await _userManager.AddToRoleAsync(receiver, Roles.Client);
+
+            var receiverClient = new Client
+            {
+                UserId = receiver.Id,
+                DailyTransferLimit = 5000,
+                InternetPaymentLimit = 1000
+            };
+            _context.Clients.Add(receiverClient);
+
+            var receiverAccount = new Account
+            {
+                OwnerId = receiver.Id,
+                AccountNumber = "40817810000000000002",
+                Balance = 0,
+                IsFrozen = false
+            };
+            _context.Accounts.Add(receiverAccount);
+            
+            // --- ВАЖНО: СОХРАНЯЕМ ВТОРОГО КЛИЕНТА ---
+            await _context.SaveChangesAsync();
         }
     }
 }
