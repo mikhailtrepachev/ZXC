@@ -43,7 +43,7 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
 
         _context.Clients.Add(clientEntity);
         
-        var newAccount = new Account
+        var newAccount = new Domain.Entities.Account
         {
             OwnerId = userId,
             AccountNumber = GenerateAccountNumber(), // Генерируем красивый номер

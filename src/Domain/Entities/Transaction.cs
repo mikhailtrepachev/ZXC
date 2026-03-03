@@ -4,7 +4,11 @@ public class Transaction : BaseAuditableEntity
 {
     public required string FromAccountId { get; set; }
     
+    public Account? FromAccount { get; set; }
+    
     public required string ToAccountId { get; set; }
+    
+    public Account? ToAccount { get; set; }
     
     public decimal Amount { get; set; }
     
