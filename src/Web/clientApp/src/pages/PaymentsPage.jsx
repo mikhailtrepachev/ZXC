@@ -33,7 +33,21 @@ function pick(obj, ...keys) {
   return undefined;
 }
 
-function formatMoney(value) {
+function currencyCodeFromName(currencyName) {
+  const normalized = String(currencyName || "").toLowerCase();
+
+  if (normalized.includes("dollar") || normalized === "usd") {
+    return "USD";
+  }
+
+  if (normalized.includes("euro") || normalized === "eur") {
+    return "EUR";
+  }
+
+  return "CZK";
+}
+
+function formatMoney(value, currencyName = "CZK") {
   const amount = Number(value);
   if (!Number.isFinite(amount)) {
     return "--";
@@ -41,7 +55,7 @@ function formatMoney(value) {
 
   return new Intl.NumberFormat("cs-CZ", {
     style: "currency",
-    currency: "CZK",
+    currency: currencyCodeFromName(currencyName),
     maximumFractionDigits: 0,
   }).format(amount);
 }
@@ -67,6 +81,23 @@ function transactionIsIncome(type) {
   }
 
   return Number(type) === 0;
+}
+
+function mapAccountForTransfer(rawItem) {
+  const accountNumber = String(pick(rawItem, "accountNumber", "AccountNumber") || "").trim();
+  const currency = String(pick(rawItem, "currency", "Currency") || "CZK");
+  const type = String(pick(rawItem, "type", "Type") || "");
+  const isFrozen = Boolean(pick(rawItem, "isFrozen", "IsFrozen"));
+  const balance = Number(pick(rawItem, "balance", "Balance"));
+
+  return {
+    id: String(pick(rawItem, "id", "Id") || accountNumber),
+    accountNumber,
+    currency,
+    type,
+    isFrozen,
+    balance: Number.isFinite(balance) ? balance : 0,
+  };
 }
 
 function extractAccountList(payload) {
@@ -139,6 +170,7 @@ export default function PaymentsPage() {
   const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  const [fromAccountNumber, setFromAccountNumber] = useState("");
   const [toAccountNumber, setToAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,8 +178,19 @@ export default function PaymentsPage() {
   const [submitSuccess, setSubmitSuccess] = useState("");
 
   const accounts = useMemo(() => {
-    return extractAccountList(profile);
+    const rawAccounts = extractAccountList(profile);
+    if (!Array.isArray(rawAccounts)) {
+      return [];
+    }
+
+    return rawAccounts
+      .map(mapAccountForTransfer)
+      .filter((account) => Boolean(account.accountNumber));
   }, [profile]);
+
+  const activeAccounts = useMemo(() => {
+    return accounts.filter((account) => !account.isFrozen);
+  }, [accounts]);
 
   const dailyLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
   const internetLimit = Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
@@ -229,6 +272,43 @@ export default function PaymentsPage() {
     loadHistory();
   }, []);
 
+  useEffect(() => {
+    if (activeAccounts.length === 0) {
+      setFromAccountNumber("");
+      return;
+    }
+
+    if (!activeAccounts.some((account) => account.accountNumber === fromAccountNumber)) {
+      setFromAccountNumber(activeAccounts[0].accountNumber);
+    }
+  }, [activeAccounts, fromAccountNumber]);
+
+  useEffect(() => {
+    if (!fromAccountNumber) {
+      return;
+    }
+
+    if (toAccountNumber !== fromAccountNumber) {
+      return;
+    }
+
+    const fallbackReceiver =
+      activeAccounts.find((account) => account.accountNumber !== fromAccountNumber)?.accountNumber || "";
+    setToAccountNumber(fallbackReceiver);
+  }, [fromAccountNumber, toAccountNumber, activeAccounts]);
+
+  useEffect(() => {
+    if (toAccountNumber || !fromAccountNumber) {
+      return;
+    }
+
+    const initialReceiver =
+      activeAccounts.find((account) => account.accountNumber !== fromAccountNumber)?.accountNumber || "";
+    if (initialReceiver) {
+      setToAccountNumber(initialReceiver);
+    }
+  }, [toAccountNumber, fromAccountNumber, activeAccounts]);
+
   const setTemplate = (value) => {
     setAmount(String(value));
   };
@@ -238,16 +318,38 @@ export default function PaymentsPage() {
     setSubmitError("");
     setSubmitSuccess("");
 
+    const normalizedFromAccount = fromAccountNumber.trim();
     const normalizedToAccount = toAccountNumber.trim();
     const numericAmount = Number(amount);
+    const senderAccount = activeAccounts.find((account) => account.accountNumber === normalizedFromAccount);
+
+    if (!/^\d{10,30}$/.test(normalizedFromAccount)) {
+      setSubmitError("Vyberte platny ucet odesilatele.");
+      return;
+    }
+
+    if (!senderAccount) {
+      setSubmitError("Vybrany ucet odesilatele neni dostupny.");
+      return;
+    }
 
     if (!/^\d{10,30}$/.test(normalizedToAccount)) {
       setSubmitError("Zadejte platne cislo uctu prijemce.");
       return;
     }
 
+    if (normalizedFromAccount === normalizedToAccount) {
+      setSubmitError("Nelze poslat prevod na stejny ucet.");
+      return;
+    }
+
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
       setSubmitError("Castka musi byt kladne cislo.");
+      return;
+    }
+
+    if (numericAmount > senderAccount.balance) {
+      setSubmitError("Nedostatek prostredku na vybranem uctu.");
       return;
     }
 
@@ -264,6 +366,7 @@ export default function PaymentsPage() {
         credentials: "include",
         headers: getAuthHeaders(true),
         body: JSON.stringify({
+          fromAccountNumber: normalizedFromAccount,
           toAccountNumber: normalizedToAccount,
           amount: numericAmount,
         }),
@@ -276,7 +379,9 @@ export default function PaymentsPage() {
       }
 
       setSubmitSuccess("Prevod byl uspesne odeslan.");
-      setToAccountNumber("");
+      const suggestedReceiver =
+        activeAccounts.find((account) => account.accountNumber !== normalizedFromAccount)?.accountNumber || "";
+      setToAccountNumber(suggestedReceiver);
       setAmount("");
       await Promise.all([loadHistory(), loadProfile()]);
     } catch {
@@ -297,14 +402,36 @@ export default function PaymentsPage() {
             <h2 className="page__panelTitle">Novy prevod</h2>
             <form className="payments-page__form" onSubmit={handleSubmit}>
               <label>
+                Z uctu
+                <select
+                  value={fromAccountNumber}
+                  onChange={(event) => setFromAccountNumber(event.target.value)}
+                  disabled={activeAccounts.length === 0}
+                >
+                  {activeAccounts.length === 0 && <option value="">Bez dostupneho uctu</option>}
+                  {activeAccounts.map((account) => (
+                    <option key={account.id} value={account.accountNumber}>
+                      {account.accountNumber} ({formatMoney(account.balance, account.currency)} - {account.currency})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
                 Cislo uctu prijemce
                 <input
                   type="text"
                   value={toAccountNumber}
                   onChange={(event) => setToAccountNumber(event.target.value.replace(/[^\d]/g, ""))}
                   placeholder="Napriklad 40817123456789012345"
+                  list="payments-page-my-accounts"
                 />
               </label>
+              <datalist id="payments-page-my-accounts">
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.accountNumber} />
+                ))}
+              </datalist>
 
               <label>
                 Castka (Kc)
@@ -318,7 +445,11 @@ export default function PaymentsPage() {
                 />
               </label>
 
-              <button className="page__button payments-page__submit" type="submit" disabled={isSubmitting}>
+              <button
+                className="page__button payments-page__submit"
+                type="submit"
+                disabled={isSubmitting || activeAccounts.length === 0}
+              >
                 {isSubmitting ? "Odesilam..." : "Odeslat platbu"}
               </button>
 
@@ -355,8 +486,8 @@ export default function PaymentsPage() {
               <p>Moje ucty:</p>
               {accounts.length === 0 && <span>Zatim bez dostupnych uctu.</span>}
               {accounts.map((account) => (
-                <span key={pick(account, "id", "Id")}>
-                  {pick(account, "accountNumber", "AccountNumber")} ({pick(account, "currency", "Currency")})
+                <span key={account.id}>
+                  {account.accountNumber} ({account.currency}) - {formatMoney(account.balance, account.currency)}
                 </span>
               ))}
             </div>

@@ -602,7 +602,12 @@ export default function CardsPage() {
           </section>
 
           <section className="page__panel page__panel--full">
-            <h2 className="page__panelTitle">Posledni transakce kartou</h2>
+            <div className="cards-page__panelHead">
+              <h2 className="page__panelTitle">Posledni transakce kartou</h2>
+              <button className="page__chip" type="button" onClick={loadTransactions} disabled={isTransactionsLoading}>
+                Obnovit historii
+              </button>
+            </div>
 
             {isTransactionsLoading && <p className="cards-page__state">Nacitam transakce...</p>}
             {!isTransactionsLoading && transactionsError && (
