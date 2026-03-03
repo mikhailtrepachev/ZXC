@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getAccessToken, resolveUserDisplayNameByEmail } from "../auth/session";
 import "./AccountsPage.css";
 
@@ -178,6 +179,7 @@ function extractAccountList(payload) {
 }
 
 export default function AccountsPage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -353,6 +355,22 @@ export default function AccountsPage() {
     }
   };
 
+  const handleOpenCardDetails = (card) => {
+    const cardId = Number(card?.id);
+    if (!Number.isFinite(cardId) || cardId <= 0) {
+      return;
+    }
+
+    navigate(`/cards/${cardId}`, {
+      state: {
+        card: {
+          ...card,
+          holderLabel: resolveUserDisplayNameByEmail(profileEmail, card.holderName),
+        },
+      },
+    });
+  };
+
   return (
     <section className="accounts-page">
       <div className="accounts-shell">
@@ -402,7 +420,12 @@ export default function AccountsPage() {
             {!isCardsLoading && !cardsError && cards.length > 0 && (
               <div className="accounts-list">
                 {cards.map((card) => (
-                  <article className="account-card account-card--compact" key={card.id}>
+                  <button
+                    className="account-card account-card--compact account-card--action"
+                    type="button"
+                    key={card.id}
+                    onClick={() => handleOpenCardDetails(card)}
+                  >
                     <div className="account-card__icon">{card.isVirtual ? "V" : "K"}</div>
                     <div className="account-card__content">
                       <p className="account-card__balance">Karta {card.maskedNumber}</p>
@@ -413,7 +436,7 @@ export default function AccountsPage() {
                         {card.isVirtual ? "Virtualni" : "Plastova"} - exp {card.expiryDate}
                       </p>
                     </div>
-                  </article>
+                  </button>
                 ))}
               </div>
             )}

@@ -1,3 +1,73 @@
+.page.user-settings-page {
+  --usp-bg-0: #2a1b3d;
+  --usp-bg-1: #44318d;
+  --usp-surface: rgba(255, 255, 255, 0.08);
+  --usp-line: rgba(255, 255, 255, 0.16);
+  --usp-text: rgba(255, 255, 255, 0.92);
+  --usp-muted: rgba(255, 255, 255, 0.7);
+
+  min-height: calc(100vh - 120px);
+  padding: 28px 16px 34px;
+  color: var(--usp-text);
+  background:
+    radial-gradient(1000px 350px at 110% -30%, rgba(216, 63, 135, 0.22), transparent 65%),
+    radial-gradient(900px 300px at -10% 0%, rgba(122, 92, 255, 0.2), transparent 65%),
+    linear-gradient(140deg, var(--usp-bg-0), var(--usp-bg-1));
+}
+
+.user-settings-page .page__container {
+  max-width: 1080px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.user-settings-page .page__title {
+  margin: 0 0 10px;
+  font-size: 3.2rem;
+  color: var(--usp-text);
+}
+
+.user-settings-page .page__subtitle {
+  margin: 0 0 24px;
+  color: var(--usp-muted);
+}
+
+.user-settings-page .page__panel {
+  border: 1px solid var(--usp-line);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--usp-surface);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.user-settings-page .page__panelTitle {
+  color: var(--usp-text);
+}
+
+.user-settings-page .page__chip {
+  border: 1px solid var(--usp-line);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--usp-text);
+}
+
+.user-settings-page .page__chip:hover {
+  border-color: rgba(233, 128, 116, 0.8);
+  background: rgba(233, 128, 116, 0.18);
+}
+
+.user-settings-page .page__button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #d83f87, #e98074);
+  color: #fff;
+}
+
+.user-settings-page .page__button:hover {
+  background: linear-gradient(90deg, #c9357b, #de7165);
+}
+
 .user-settings-page__container {
   max-width: 1080px;
 }
@@ -15,12 +85,12 @@
 
 .user-settings-page__hint {
   margin: 0 0 8px;
-  color: #4b5563;
+  color: var(--usp-muted);
 }
 
 .user-settings-page__email {
   margin: 0 0 12px;
-  color: #111827;
+  color: var(--usp-text);
   font-size: 14px;
   font-weight: 600;
 }
@@ -36,20 +106,22 @@
   display: grid;
   gap: 6px;
   font-size: 14px;
-  color: #111827;
+  color: var(--usp-text);
 }
 
 .user-settings-page__nameForm input {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .user-settings-page__nameForm input:focus {
   outline: none;
-  border-color: #93c5fd;
-  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
+  border-color: #e98074;
+  box-shadow: 0 0 0 3px rgba(233, 128, 116, 0.22);
 }
 
 .user-settings-page__actions {
@@ -66,34 +138,34 @@
 
 .user-settings-page__endpoint {
   font-size: 12px;
-  color: #4b5563;
+  color: var(--usp-muted);
   font-family: "Consolas", "Courier New", monospace;
 }
 
 .user-settings-page__state {
   margin: 0 0 12px;
   font-size: 14px;
-  color: #4b5563;
+  color: var(--usp-muted);
 }
 
 .user-settings-page__state--error {
-  color: #b91c1c;
+  color: #ffb4b4;
 }
 
 .user-settings-page__state--ok {
-  color: #166534;
+  color: #bbf7d0;
 }
 
 .user-settings-page__table {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid var(--usp-line);
+  border-radius: 12px;
   overflow: hidden;
 }
 
 .user-settings-page__row {
   display: grid;
   grid-template-columns: minmax(230px, 1fr) minmax(300px, 2fr);
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .user-settings-page__row:last-child {
@@ -108,14 +180,14 @@
 }
 
 .user-settings-page__key {
-  background: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
   font-family: "Consolas", "Courier New", monospace;
-  color: #1f2937;
+  color: #dbeafe;
 }
 
 .user-settings-page__value {
-  color: #111827;
-  background: #ffffff;
+  color: var(--usp-text);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .user-settings-page__raw {
@@ -125,7 +197,7 @@
 .user-settings-page__raw summary {
   cursor: pointer;
   font-size: 13px;
-  color: #374151;
+  color: #c4b5fd;
 }
 
 .user-settings-page__raw pre {
@@ -133,14 +205,23 @@
   max-height: 360px;
   overflow: auto;
   border-radius: 8px;
-  background: #0f172a;
+  background: rgba(11, 18, 32, 0.9);
   color: #e2e8f0;
   padding: 12px;
   font-size: 12px;
   line-height: 1.45;
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 @media (max-width: 768px) {
+  .page.user-settings-page {
+    padding-top: 20px;
+  }
+
+  .user-settings-page .page__title {
+    font-size: 2.8rem;
+  }
+
   .user-settings-page__head {
     flex-direction: column;
     align-items: stretch;

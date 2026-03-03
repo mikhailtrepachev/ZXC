@@ -11,6 +11,16 @@ public record RegisterClientCommand : IRequest<string>
 {
     public required string Email { get; init; }
     public required string Password { get; init; }
+    
+    public required string FirstName { get; init; }
+    
+    public required string LastName { get; init; }
+    
+    public required string PhoneNumber { get; init; }
+    
+    public required string State { get; init; }
+    
+    public required string Street { get; init; }
 }
 
 public class RegisterClientCommandHandler : IRequestHandler<RegisterClientCommand, string>
@@ -41,8 +51,15 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
         var clientEntity = new Client
         {
             UserId = userId,
+            
             DailyTransferLimit = 10000,
-            InternetPaymentLimit = 5000
+            InternetPaymentLimit = 5000,
+            
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber,
+            State = request.State,
+            Street = request.Street
         };
 
         // 4. Генерируем счета и КЛАДЕМ ИХ ВНУТРЬ КЛИЕНТА
