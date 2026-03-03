@@ -15,7 +15,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Manager> Managers => Set<Manager>();
     public DbSet<Child> Children => Set<Child>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
-    
+
+
+    public DbSet<Notification> Notifications => Set<Notification>();
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder builder)
