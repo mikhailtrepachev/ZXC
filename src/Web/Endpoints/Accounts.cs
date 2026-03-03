@@ -11,7 +11,7 @@ public class Accounts : EndpointGroupBase
             .MapGet(GetAccountInfo, "info"); // GET /api/Accounts/info
     }
 
-    public async Task<AccountDto> GetAccountInfo(ISender sender)
+    public async Task<ClientProfileDto> GetAccountInfo(ISender sender)
     {
         return await sender.Send(new GetAccountInfoQuery());
     }

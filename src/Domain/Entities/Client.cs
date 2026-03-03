@@ -7,4 +7,6 @@ public class Client : BaseAuditableEntity
     public decimal DailyTransferLimit { get; set; }
     
     public decimal InternetPaymentLimit { get; set; }
+    
+    public IList<Account> Accounts { get; private set; } = new List<Account>();
 }
