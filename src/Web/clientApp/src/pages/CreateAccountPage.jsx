@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./CreateAccountPage.css";
-import { persistSession } from "../auth/session";
+import { persistSession, saveLocalUserProfile } from "../auth/session";
 
 const PASSWORD_POLICY_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/;
@@ -46,6 +46,8 @@ async function extractApiError(response, fallback) {
 }
 
 export default function CreateAccountPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -53,10 +55,19 @@ export default function CreateAccountPage() {
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setSuccess("");
+
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
+    const normalizedEmail = email.trim();
+
+    if (!normalizedFirstName || !normalizedLastName) {
+      setError("Vyplnte jmeno i prijmeni.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Hesla se neshoduji.");
@@ -78,7 +89,9 @@ export default function CreateAccountPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
         password,
       }),
     });
@@ -90,13 +103,19 @@ export default function CreateAccountPage() {
       return;
     }
 
+    saveLocalUserProfile({
+      email: normalizedEmail,
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
+    });
+
     const loginResponse = await fetch("/api/Clients/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email,
+        email: normalizedEmail,
         password,
       }),
     });
@@ -119,12 +138,32 @@ export default function CreateAccountPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
+            <label>Jmeno</label>
+            <input
+              type="text"
+              required
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Prijmeni</label>
+            <input
+              type="text"
+              required
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+            />
+          </div>
+
+          <div className="input-group">
             <label>E-mail</label>
             <input
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
             />
           </div>
 
@@ -135,7 +174,7 @@ export default function CreateAccountPage() {
               minLength={6}
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
             <p className="password-hint">
               Min. 6 znaku: velke + male pismeno, cislo, specialni znak (napr. _, !, @).
@@ -148,7 +187,7 @@ export default function CreateAccountPage() {
               type="password"
               required
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(event) => setConfirmPassword(event.target.value)}
             />
           </div>
 

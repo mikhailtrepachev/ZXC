@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAccessToken } from "../auth/session";
+import { getAccessToken, resolveUserDisplayNameByEmail } from "../auth/session";
 import "./PageLayout.css";
 import "./CardsPage.css";
 
@@ -86,6 +86,20 @@ function parseJsonStorage(key, fallback) {
   }
 }
 
+function pick(obj, ...keys) {
+  if (!obj || typeof obj !== "object") {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) {
+      return obj[key];
+    }
+  }
+
+  return undefined;
+}
+
 function transactionIsIncome(type) {
   if (typeof type === "string") {
     return type.toLowerCase() === "income";
@@ -105,6 +119,7 @@ export default function CardsPage() {
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(true);
   const [transactionsError, setTransactionsError] = useState("");
 
+  const [profileEmail, setProfileEmail] = useState("");
   const [balance, setBalance] = useState(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [notice, setNotice] = useState({ type: "", text: "" });
@@ -148,12 +163,13 @@ export default function CardsPage() {
         id,
         isLocallyBlocked,
         isActiveUi,
+        holderLabel: resolveUserDisplayNameByEmail(profileEmail, card.holderName),
         statusLabel: !card.isActive ? "Blokovana bankou" : isLocallyBlocked ? "Docasne blokovana" : "Aktivni",
         cardTypeLabel: card.isVirtual ? "Visa Virtual" : "Visa Classic",
         limit: Number(cardLimits[id]) || null,
       };
     });
-  }, [cards, tempBlockedIds, cardLimits]);
+  }, [cards, tempBlockedIds, cardLimits, profileEmail]);
 
   const selectedCard = useMemo(() => {
     return cardsView.find((card) => card.id === selectedCardId) ?? null;
@@ -256,9 +272,24 @@ export default function CardsPage() {
       }
 
       const payload = await response.json().catch(() => null);
-      const numericBalance = Number(payload?.balance);
-      setBalance(Number.isFinite(numericBalance) ? numericBalance : null);
+      const email = String(pick(payload, "email", "Email", "userName", "UserName") || "").trim();
+      setProfileEmail(email);
+      const rawAccounts = pick(payload, "accounts", "Accounts");
+      const list = Array.isArray(rawAccounts) ? rawAccounts : [];
+
+      if (list.length === 0) {
+        setBalance(null);
+        return;
+      }
+
+      const total = list.reduce((sum, account) => {
+        const value = Number(pick(account, "balance", "Balance"));
+        return Number.isFinite(value) ? sum + value : sum;
+      }, 0);
+
+      setBalance(Number.isFinite(total) ? total : null);
     } catch {
+      setProfileEmail("");
       setBalance(null);
     }
   };
@@ -468,6 +499,7 @@ export default function CardsPage() {
                     </div>
 
                     <div className="page__itemMeta">
+                      <span>Drzitel: {card.holderLabel}</span>
                       <span>Dostupny zustatek: {formatMoney(balance)}</span>
                       <span>Platnost: {card.expiryDate}</span>
                     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAccessToken, logoutUser } from "../auth/session";
+import { getAccessToken, logoutUser, resolveUserDisplayNameByEmail } from "../auth/session";
 import "./header_style.css";
 
 const NAV = [
@@ -17,12 +17,25 @@ function resolveUserLabel(payload) {
     return "";
   }
 
-  const raw = payload.email || payload.userName || payload.username || payload.name || payload.fullName || "";
+  const email = payload.email || payload.Email || payload.userName || payload.UserName || payload.username || "";
+
+  const raw =
+    payload.fullName ||
+    payload.FullName ||
+    payload.email ||
+    payload.Email ||
+    payload.userName ||
+    payload.UserName ||
+    payload.username ||
+    payload.name ||
+    payload.fullName ||
+    payload.FullName ||
+    "";
   if (typeof raw !== "string") {
     return "";
   }
 
-  return raw.trim();
+  return resolveUserDisplayNameByEmail(email, raw.trim());
 }
 
 export default function Header() {
