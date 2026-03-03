@@ -22,7 +22,7 @@ public class AdminResetPasswordCommandHandler : IRequestHandler<AdminResetPasswo
     public async Task Handle(AdminResetPasswordCommand request, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(request.UserId);
-        if (user == null) throw new Exception("Пользователь не найден");
+        if (user == null) throw new Exception("Uživatel nebyl nalezen");
 
         // 1. Удаляем текущий пароль (какой бы он ни был)
         if (await _userManager.HasPasswordAsync(user))
@@ -35,7 +35,7 @@ public class AdminResetPasswordCommandHandler : IRequestHandler<AdminResetPasswo
 
         if (!result.Succeeded)
         {
-            throw new Exception($"Не удалось сбросить пароль: {string.Join(", ", result.Errors)}");
+            throw new Exception($"Nepodařilo se obnovit heslo: {string.Join(", ", result.Errors)}");
         }
     }
 }

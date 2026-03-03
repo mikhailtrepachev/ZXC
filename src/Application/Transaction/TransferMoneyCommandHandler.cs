@@ -31,7 +31,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
     public async Task<int> Handle(TransferMoneyCommand request, CancellationToken cancellationToken)
     {
         // 0. Валидация
-        if (request.Amount <= 0) throw new Exception("Сумма перевода должна быть положительной");
+        if (request.Amount <= 0) throw new Exception("Částka převodu musí být kladná");
 
         string? userId = _currentUser.Id;
         if (userId == null) throw new UnauthorizedAccessException();
@@ -43,32 +43,32 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
             .FirstOrDefaultAsync(a => a.AccountNumber == request.FromAccountNumber && a.OwnerId == userId, cancellationToken);
         
         if (senderAccount == null) 
-            throw new Exception("Счет списания не найден или не принадлежит вам.");
+            throw new Exception("Účet pro odepsání nebyl nalezen nebo vám nepatří.");
 
         if (senderAccount.IsFrozen) 
-            throw new Exception("Ваш счет заморожен. Обратитесь в поддержку.");
+            throw new Exception("Váš účet je zablokován. Kontaktujte podporu.");
         
         if (senderAccount.Balance < request.Amount) 
-            throw new Exception("Недостаточно средств на счете.");
+            throw new Exception("Na účtu není dostatek prostředků.");
 
         // 2. Ищем счет ПОЛУЧАТЕЛЯ
         var receiverAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.AccountNumber == request.ToAccountNumber, cancellationToken);
 
         if (receiverAccount == null) 
-            throw new Exception("Счет получателя не найден.");
+            throw new Exception("Účet příjemce nebyl nalezen.");
         
         if (receiverAccount.IsFrozen) 
-            throw new Exception("Счет получателя заморожен.");
+            throw new Exception("Účet příjemce je zablokován.");
 
         // 3. Проверка на перевод самому себе (на тот же счет)
         if (senderAccount.Id == receiverAccount.Id) 
-            throw new Exception("Нельзя переводить самому себе на тот же счет.");
+            throw new Exception("Nelze převádět peníze sami sobě na stejný účet.");
 
         // --- ЛОГИКА КОНВЕРТАЦИИ ---
         decimal amountToDebit = request.Amount;   // Списываем сколько ввел юзер
         decimal amountToCredit = request.Amount;  // Зачисляем (по умолчанию столько же)
-        string description = $"Перевод на {request.ToAccountNumber}";
+        string description = $"Převod na {request.ToAccountNumber}";
 
         if (senderAccount.Currency != receiverAccount.Currency)
         {
@@ -82,7 +82,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
             // Округляем до копеек
             amountToCredit = Math.Round(amountToCredit, 2);
             
-            description += $" (Конвертация: {request.Amount} {senderAccount.Currency} -> {amountToCredit} {receiverAccount.Currency})";
+            description += $" (Konverze: {request.Amount} {senderAccount.Currency} -> {amountToCredit} {receiverAccount.Currency})";
         }
 
         // 4. Выполняем транзакцию (Меняем балансы)

@@ -52,13 +52,13 @@ public class RealCurrencyService : ICurrencyService
                 else
                 {
                     // Если API недоступен или вернул ерунду — фолбэк (можно выбросить ошибку)
-                    throw new Exception("Не удалось получить курс валют");
+                    throw new Exception("Nepodařilo se získat kurz měny.");
                 }
             }
             catch
             {
                 // На случай, если интернета нет вообще — можно вернуть хардкод или упасть
-                throw new Exception($"Сервис курсов валют недоступен. Невозможно перевести {fromCode} в {toCode}");
+                throw new Exception($"Služba kurzů měn je nedostupná. Nelze převést {fromCode} na {toCode}.");
             }
         }
 
@@ -72,7 +72,7 @@ public class RealCurrencyService : ICurrencyService
             Currency.Dollar => "USD",
             Currency.Euro => "EUR",
             Currency.Koruna => "CZK",
-            _ => throw new ArgumentException("Неизвестная валюта")
+            _ => throw new ArgumentException("Neznámá měna.")
         };
     }
 }
