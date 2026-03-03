@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using ZxcBank.Domain.Entities;
 using ZxcBank.Infrastructure.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ZxcBank.Infrastructure.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -58,7 +59,10 @@ public static class DependencyInjection
 
         builder.Services.AddTransient<JwtTokenGenerator>();
         builder.Services.AddTransient<IPasswordHasher<ZxcBank.Domain.Entities.Card>, PasswordHasher<ZxcBank.Domain.Entities.Card>>();
-
+        
+        builder.Services.AddMemoryCache();
+        builder.Services.AddHttpClient<ICurrencyService, RealCurrencyService>();
+        
         builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

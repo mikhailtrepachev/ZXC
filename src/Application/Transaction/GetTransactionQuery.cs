@@ -1,5 +1,7 @@
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace ZxcBank.Application.Transaction;
 
@@ -19,29 +21,35 @@ public class GetTransactionsQueryHandler : IRequestHandler<GetTransactionsQuery,
     public async Task<List<TransactionDto>> Handle(GetTransactionsQuery request, CancellationToken cancellationToken)
     {
         string? userId = _currentUser.Id;
-        
-        // 1. Находим ID нашего счета
-        Domain.Entities.Account? myAccount = await _context.Accounts
-            .AsNoTracking() // Ускорение для чтения
-            .FirstOrDefaultAsync(a => a.OwnerId == userId, cancellationToken);
+        if (userId == null) throw new UnauthorizedAccessException();
 
-        if (myAccount == null) return new List<TransactionDto>();
-
-        // 2. Ищем все транзакции, где мы отправитель ИЛИ получатель
-        var transactions = await _context.Transactions
-            .Include(t => t.FromAccount)
-            .Include(t => t.ToAccount)
-            .Where(t => t.FromAccountId == myAccount.AccountNumber || t.ToAccountId == myAccount.AccountNumber)
-            .OrderByDescending(t => t.Created) // Сначала новые
-            .Take(20) // Ограничим 20 последними (для хакатона хватит)
+        // 1. ИСПРАВЛЕНИЕ: Получаем список НОМЕРОВ счетов (string), а не ID (int)
+        List<string> userAccountNumbers = await _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.OwnerId == userId)
+            .Select(a => a.AccountNumber) // <--- БЕРЕМ AccountNumber (строка)
             .ToListAsync(cancellationToken);
 
-        // 3. Превращаем в DTO
-        List<TransactionDto> result = new List<TransactionDto>();
+        if (!userAccountNumbers.Any()) return new List<TransactionDto>();
+
+        // 2. Теперь типы совпадают: List<string> и t.FromAccountId (string)
+        var transactions = await _context.Transactions
+            .AsNoTracking()
+            .Include(t => t.FromAccount)
+            .Include(t => t.ToAccount)
+            .Where(t => userAccountNumbers.Contains(t.FromAccountId) || 
+                        userAccountNumbers.Contains(t.ToAccountId))
+            .OrderByDescending(t => t.Created)
+            .Take(20)
+            .ToListAsync(cancellationToken);
+
+        // 3. Маппим в DTO
+        var result = new List<TransactionDto>();
 
         foreach (var t in transactions)
         {
-            bool isIncome = t.ToAccountId == myAccount.AccountNumber; // Если получатель - мы, значит доход
+            // Проверяем по строке (номеру счета)
+            bool isIncome = userAccountNumbers.Contains(t.ToAccountId!);
 
             result.Add(new TransactionDto
             {
@@ -49,9 +57,11 @@ public class GetTransactionsQueryHandler : IRequestHandler<GetTransactionsQuery,
                 Date = t.Created.DateTime,
                 Amount = t.Amount,
                 Type = isIncome ? TransactionType.Income : TransactionType.Expense,
+                
                 CounterpartyAccount = isIncome 
-                    ? t.FromAccount?.AccountNumber ?? "Банкомат" 
-                    : t.ToAccount?.AccountNumber ?? "Неизвестно",
+                    ? t.FromAccountId ?? "Банкомат"  // Берем само поле, раз оно хранит номер
+                    : t.ToAccountId ?? "Неизвестно",
+                
                 Description = t.Description
             });
         }
