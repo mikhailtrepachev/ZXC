@@ -199,7 +199,7 @@ export default function PaymentsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se nacist profil.");
+        const message = await readErrorMessage(response, "Nepodařilo se načíst profil.");
         setProfileError(message);
         setProfile(null);
         return;
@@ -208,7 +208,7 @@ export default function PaymentsPage() {
       const payload = await response.json().catch(() => null);
       setProfile(payload);
     } catch {
-      setProfileError("Nepodarilo se nacist profil.");
+      setProfileError("Nepodařilo se načíst profil.");
       setProfile(null);
     } finally {
       setProfileLoading(false);
@@ -282,42 +282,42 @@ export default function PaymentsPage() {
     );
 
     if (!/^\d{10,30}$/.test(normalizedFromAccount)) {
-      setSubmitError("Vyberte platny ucet odesilatele.");
+      setSubmitError("Vyberte platný účet odesílatele.");
       return null;
     }
 
     if (!senderAccount) {
-      setSubmitError("Vybrany ucet odesilatele neni dostupny.");
+      setSubmitError("Vybraný účet odesílatele není dostupný.");
       return null;
     }
 
     if (!/^\d{10,30}$/.test(normalizedToAccount)) {
-      setSubmitError("Zadejte platne cislo uctu prijemce.");
+      setSubmitError("Zadejte platné číslo účtu příjemce.");
       return null;
     }
 
     if (normalizedFromAccount === normalizedToAccount) {
-      setSubmitError("Nelze provest prevod na stejny ucet.");
+      setSubmitError("Nelze provést převod na stejný účet.");
       return null;
     }
 
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setSubmitError("Castka musi byt kladne cislo.");
+      setSubmitError("Částka musí být kladné číslo.");
       return null;
     }
 
     if (numericAmount > senderAccount.balance) {
-      setSubmitError("Nedostatek prostredku na vybranem uctu.");
+      setSubmitError("Nedostatek prostředků na vybraném účtu.");
       return null;
     }
 
     if (dailyLimit > 0 && numericAmount > dailyLimit) {
-      setSubmitError(`Castka presahuje denni limit ${formatMoney(dailyLimit, selectedCurrencyName)}.`);
+      setSubmitError(`Částka přesahuje denní limit ${formatMoney(dailyLimit, selectedCurrencyName)}.`);
       return null;
     }
 
     if (normalizedMessage.length > 140) {
-      setSubmitError("Zprava muze mit maximalne 140 znaku.");
+      setSubmitError("Zpráva může mit maximalne 140 znaku.");
       return null;
     }
 
@@ -349,21 +349,21 @@ export default function PaymentsPage() {
         return {
           holderFirstName: "",
           holderLastName: "",
-          holderFullName: "Drzitel uctu nebyl nalezen",
+          holderFullName: "Držitel účtu nebyl nalezen",
           accountNumber,
         };
       }
 
-      const message = await readErrorMessage(response, "Nepodarilo se overit prijemce.");
+      const message = await readErrorMessage(response, "Nepodařilo se ověřit příjemce.");
       setConfirmError(message);
     } catch {
-      setConfirmError("Nepodarilo se overit prijemce.");
+      setConfirmError("Nepodařilo se ověřit příjemce.");
     }
 
     return {
       holderFirstName: "",
       holderLastName: "",
-      holderFullName: "Drzitel uctu nebyl nalezen",
+      holderFullName: "Držitel účtu nebyl nalezen",
       accountNumber,
     };
   };
@@ -423,12 +423,12 @@ export default function PaymentsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Prevod se nepodaril.");
+        const message = await readErrorMessage(response, "Převod se nepodařil.");
         setConfirmError(message);
         return;
       }
 
-      setSubmitSuccess("Prevod byl uspesne odeslan.");
+      setSubmitSuccess("Převod byl úspěšně odeslán.");
       setToAccountNumber(suggestedReceiver);
       setAmount("");
       setTransferMessage("");
@@ -438,7 +438,7 @@ export default function PaymentsPage() {
 
       await loadProfile();
     } catch {
-      setConfirmError("Prevod se nepodaril.");
+      setConfirmError("Převod se nepodařil.");
     } finally {
       setIsSubmitting(false);
     }
@@ -448,20 +448,20 @@ export default function PaymentsPage() {
     <div className="page payments-page">
       <div className="page__container">
         <h1 className="page__title">Platby</h1>
-        <p className="page__subtitle">Rychly prevod penez s kontrolou udaju pred odeslanim.</p>
+        <p className="page__subtitle">Rychlý převod peněz s kontrolou údajů před odesláním.</p>
 
         <div className="page__grid">
           <section className="page__panel page__panel--full">
-            <h2 className="page__panelTitle">Novy prevod</h2>
+            <h2 className="page__panelTitle">Nový převod</h2>
 
             <form className="payments-page__transferForm" onSubmit={handleOpenConfirm}>
               <div className="payments-page__field">
-                <p className="payments-page__label">Z uctu</p>
+                <p className="payments-page__label">Z účtu</p>
 
                 <div className="payments-page__accountPicker" ref={accountPickerRef}>
                   <div className="payments-page__accountBar">
                     <span className="payments-page__accountNumber">
-                      {selectedFromAccount?.accountNumber || "Bez dostupneho uctu"}
+                      {selectedFromAccount?.accountNumber || "Bez dostupného účtu"}
                     </span>
 
                     <button
@@ -504,21 +504,21 @@ export default function PaymentsPage() {
 
               <div className="payments-page__field">
                 <label className="payments-page__label" htmlFor="payments-to-account">
-                  Na ucet
+                  Na účet
                 </label>
                 <input
                   id="payments-to-account"
                   type="text"
                   value={toAccountNumber}
                   onChange={(event) => setToAccountNumber(event.target.value.replace(/[^\d]/g, ""))}
-                  placeholder="Napriklad 40817123456789012345"
+                  placeholder="Například 40817123456789012345"
                   inputMode="numeric"
                 />
               </div>
 
               <div className="payments-page__field">
                 <label className="payments-page__label" htmlFor="payments-amount">
-                  Zadejte castku
+                  Zadejte částku
                 </label>
                 <div className="payments-page__amountWrap">
                   <input
@@ -536,7 +536,7 @@ export default function PaymentsPage() {
 
               <div className="payments-page__field">
                 <label className="payments-page__label" htmlFor="payments-message">
-                  Zprava pro prijemce (nepovinne)
+                  Zpráva pro příjemce (nepovinné)
                 </label>
                 <textarea
                   id="payments-message"
@@ -544,7 +544,7 @@ export default function PaymentsPage() {
                   maxLength={140}
                   value={transferMessage}
                   onChange={(event) => setTransferMessage(event.target.value)}
-                  placeholder="Napiste kratkou zpravu k prevodu"
+                  placeholder="Napiste kratkou zpravu k převodu"
                 />
                 <p className="payments-page__counter">{transferMessage.length}/140</p>
               </div>
@@ -554,7 +554,7 @@ export default function PaymentsPage() {
                 type="submit"
                 disabled={activeAccounts.length === 0 || isSubmitting}
               >
-                Pokracovat
+                Pokračovat
               </button>
 
               {submitError && <p className="payments-page__msg payments-page__msg--error">{submitError}</p>}
@@ -563,38 +563,38 @@ export default function PaymentsPage() {
           </section>
 
           <section className="page__panel">
-            <h2 className="page__panelTitle">Limity a sablony</h2>
+            <h2 className="page__panelTitle">Limity a šablony</h2>
 
-            {profileLoading && <p className="payments-page__hint">Nacitam limity...</p>}
+            {profileLoading && <p className="payments-page__hint">Načítám limity...</p>}
             {!profileLoading && profileError && (
               <p className="payments-page__msg payments-page__msg--error">{profileError}</p>
             )}
             {!profileLoading && !profileError && (
               <div className="payments-page__limits">
                 <p>
-                  Denni limit prevodu: <strong>{formatMoney(dailyLimit, selectedCurrencyName)}</strong>
+                  Denní limit převodu: <strong>{formatMoney(dailyLimit, selectedCurrencyName)}</strong>
                 </p>
                 <p>
-                  Limit internetovych plateb: <strong>{formatMoney(internetLimit, selectedCurrencyName)}</strong>
+                  Limit internetových plateb: <strong>{formatMoney(internetLimit, selectedCurrencyName)}</strong>
                 </p>
               </div>
             )}
 
             <div className="page__actions">
               <button className="page__chip" type="button" onClick={() => setTemplate(500)}>
-                Sablona {formatMoney(500, selectedCurrencyName)}
+                Šablona {formatMoney(500, selectedCurrencyName)}
               </button>
               <button className="page__chip" type="button" onClick={() => setTemplate(1000)}>
-                Sablona {formatMoney(1000, selectedCurrencyName)}
+                Šablona {formatMoney(1000, selectedCurrencyName)}
               </button>
               <button className="page__chip" type="button" onClick={() => setTemplate(5000)}>
-                Sablona {formatMoney(5000, selectedCurrencyName)}
+                Šablona {formatMoney(5000, selectedCurrencyName)}
               </button>
             </div>
 
             <div className="payments-page__accounts">
-              <p>Moje ucty:</p>
-              {accounts.length === 0 && <span>Zatim bez dostupnych uctu.</span>}
+              <p>Moje účty:</p>
+              {accounts.length === 0 && <span>Zatím bez dostupných účtů.</span>}
               {accounts.map((account) => (
                 <span key={account.id}>
                   {account.accountNumber} ({currencyCodeFromName(account.currency)}) - {formatMoney(account.balance, account.currency)}
@@ -605,7 +605,7 @@ export default function PaymentsPage() {
 
         </div>
 
-        <button className="page__button" onClick={() => navigate("/accounts")}>Zpet na ucty</button>
+        <button className="page__button" onClick={() => navigate("/accounts")}>Zpět na účty</button>
       </div>
 
       {isConfirmModalOpen && (
@@ -617,36 +617,36 @@ export default function PaymentsPage() {
             aria-labelledby="payments-confirm-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="payments-confirm-title">Zkontrolujte prevod</h2>
+            <h2 id="payments-confirm-title">Zkontrolujte převod</h2>
 
             <div className="payments-page__summary">
               <div className="payments-page__summaryRow">
-                <span>Z uctu</span>
+                <span>Z účtu</span>
                 <strong>{pendingTransfer?.fromAccountNumber || "--"}</strong>
               </div>
 
               <div className="payments-page__summaryRow">
-                <span>Na ucet</span>
+                <span>Na účet</span>
                 <strong>{pendingTransfer?.toAccountNumber || "--"}</strong>
               </div>
 
               <div className="payments-page__recipient">
-                {isRecipientLoading ? "Nacitam jmeno prijemce..." : recipientPreview?.holderFullName || "Drzitel uctu nebyl nalezen"}
+                {isRecipientLoading ? "Načítám jméno příjemce..." : recipientPreview?.holderFullName || "Držitel účtu nebyl nalezen"}
               </div>
 
               <div className="payments-page__summaryRow">
-                <span>Castka</span>
+                <span>Částka</span>
                 <strong>{formatMoney(pendingTransfer?.amount || 0, pendingTransfer?.senderCurrency || "CZK")}</strong>
               </div>
 
               <div className="payments-page__summaryRow">
-                <span>Mena</span>
+                <span>Měna</span>
                 <strong>{currencyCodeFromName(pendingTransfer?.senderCurrency || "CZK")}</strong>
               </div>
 
               {pendingTransfer?.message && (
                 <div className="payments-page__summaryRow payments-page__summaryRow--message">
-                  <span>Zprava</span>
+                  <span>Zpráva</span>
                   <strong>{pendingTransfer.message}</strong>
                 </div>
               )}
@@ -661,7 +661,7 @@ export default function PaymentsPage() {
                 onClick={closeConfirmModal}
                 disabled={isSubmitting}
               >
-                Zpet
+                Zpět
               </button>
               <button
                 className="payments-page__modalButton payments-page__modalButton--primary"
@@ -669,7 +669,7 @@ export default function PaymentsPage() {
                 onClick={handleConfirmTransfer}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Odesilam..." : "Odeslat"}
+                {isSubmitting ? "Odesílám..." : "Odeslat"}
               </button>
             </div>
           </div>

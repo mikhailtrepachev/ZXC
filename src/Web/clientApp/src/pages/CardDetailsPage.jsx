@@ -9,7 +9,7 @@ import {
 import "./CardDetailsPage.css";
 
 const tabs = [
-  { id: "transactions", label: "Historie transakci" },
+  { id: "transactions", label: "Historie transakcí" },
   { id: "security", label: "Detaily karty" },
   { id: "limits", label: "Limity karty" },
   { id: "profile", label: "Profil karty" },
@@ -99,16 +99,16 @@ function TransactionsTab({ items, isLoading }) {
   if (isLoading) {
     return (
       <section className="card-details-panel">
-        <h2>Historie transakci</h2>
-        <p className="card-details-state">Nacitam transakce...</p>
+        <h2>Historie transakcí</h2>
+        <p className="card-details-state">Načítám transakce...</p>
       </section>
     );
   }
 
   return (
     <section className="card-details-panel">
-      <h2>Historie transakci</h2>
-      {items.length === 0 && <p className="card-details-state">Pro tuto kartu zatim nejsou dostupne transakce.</p>}
+      <h2>Historie transakcí</h2>
+      {items.length === 0 && <p className="card-details-state">Pro tuto kartu zatím nejsou dostupné transakce.</p>}
 
       <div className="card-details-list">
         {items.map((tx) => (
@@ -234,7 +234,7 @@ export default function CardDetailsPage() {
     async function loadCard() {
       if (!Number.isFinite(numericCardId) || numericCardId <= 0) {
         if (isMounted) {
-          setError("Neplatne ID karty.");
+          setError("Neplatné ID karty.");
           setIsCardLoading(false);
         }
         return;
@@ -272,7 +272,7 @@ export default function CardDetailsPage() {
         }
 
         if (!cardsResponse.ok) {
-          throw new Error("Nepodarilo se nacist seznam karet.");
+          throw new Error("Nepodařilo se načíst seznam karet.");
         }
 
         const list = await cardsResponse.json().catch(() => []);
@@ -298,7 +298,7 @@ export default function CardDetailsPage() {
           return;
         }
 
-        setError("Nepodarilo se nacist detaily karty.");
+        setError("Nepodařilo se načíst detaily karty.");
       } finally {
         if (isMounted) {
           setIsCardLoading(false);
@@ -359,7 +359,7 @@ export default function CardDetailsPage() {
         merchant: tx.description?.trim() || tx.counterpartyAccount || "Kartova transakce",
         date: formatDate(tx.date),
         amount: `${isIncome ? "+" : "-"} ${formatMoney(absoluteAmount)}`,
-        status: isIncome ? "Incoming" : "Completed",
+        status: isIncome ? "Příchozí" : "Dokončeno",
       };
     });
   }, [transactions]);
@@ -373,11 +373,11 @@ export default function CardDetailsPage() {
     const localPin = getLocalCardPin(card.id);
 
     return [
-      { label: "Card number", value: isSensitiveVisible && fullCardNumber ? fullCardNumber : card.maskedNumber || "--" },
-      { label: "Valid to", value: card.expiryDate || "--" },
+      { label: "Číslo karty", value: isSensitiveVisible && fullCardNumber ? fullCardNumber : card.maskedNumber || "--" },
+      { label: "Platnost do", value: card.expiryDate || "--" },
       { label: "CVC", value: isSensitiveVisible ? card.cvv || "--" : "***" },
-      { label: "PIN", value: isSensitiveVisible ? localPin || "Neni ulozen na klientu" : "****" },
-      { label: "Card holder", value: resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--") },
+      { label: "PIN", value: isSensitiveVisible ? localPin || "Není uloženo na klientovi" : "****" },
+      { label: "Držitel karty", value: resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--") },
     ];
   }, [card, isSensitiveVisible, profileEmail]);
 
@@ -387,10 +387,10 @@ export default function CardDetailsPage() {
     }
 
     return [
-      { label: "Card type", value: card.isVirtual ? "Virtualni" : "Plastova" },
-      { label: "Status", value: card.isActive ? "Aktivni" : "Blokovana bankou" },
-      { label: "Card id", value: String(card.id) },
-      { label: "Bank account", value: card.accountNumber || "--" },
+      { label: "Typ karty", value: card.isVirtual ? "Virtuální" : "Plastová" },
+      { label: "Stav", value: card.isActive ? "Aktivní" : "Blokována bankou" },
+      { label: "ID karty", value: String(card.id) },
+      { label: "Bankovní účet", value: card.accountNumber || "--" },
     ];
   }, [card]);
 
@@ -415,7 +415,7 @@ export default function CardDetailsPage() {
 
     return [
       {
-        name: "Lokalni denni limit",
+        name: "Lokální denní limit",
         used: Math.min(outgoingSpent, max),
         max,
       },
@@ -433,25 +433,25 @@ export default function CardDetailsPage() {
           <div className="card-details-head">
             <h2>Detaily karty</h2>
             <button className="card-details-revealBtn" type="button" onClick={() => setIsPasswordModalOpen(true)}>
-              {isSensitiveVisible ? "Детали открыты" : "Показать детали"}
+              {isSensitiveVisible ? "Detaily odkryté" : "Zobrazit detaily"}
             </button>
           </div>
 
           {!isSensitiveVisible && (
             <p className="card-details-state">
-              Citlive udaje jsou skryte. Kliknete na tlacitko a overte heslo.
+              Citlivé údaje jsou skryté. Klikněte na tlačítko a ověřte heslo.
             </p>
           )}
 
           {isSensitiveVisible && (
             <p className="card-details-state card-details-state--ok">
-              Citlive udaje jsou dostupne: {formatCountdown(secondsLeft)}
+              Citlivé údaje jsou dostupné: {formatCountdown(secondsLeft)}
             </p>
           )}
 
           {isSensitiveVisible && !String(pick(card, "cardNumber", "CardNumber", "fullNumber", "FullNumber") || "").trim() && (
             <p className="card-details-state">
-              Backend vraci pouze maskovane cislo karty, proto plne cislo neni k dispozici.
+              Backend vrací pouze maskované číslo karty, proto plné číslo není k dispozici.
             </p>
           )}
 
@@ -498,7 +498,7 @@ export default function CardDetailsPage() {
     }
 
     if (!profileEmail) {
-      setPasswordError("Nepodarilo se zjistit e-mail uzivatele.");
+      setPasswordError("Nepodařilo se zjistit e-mail uživatele.");
       return;
     }
 
@@ -517,7 +517,7 @@ export default function CardDetailsPage() {
       });
 
       if (!response.ok) {
-        setPasswordError("Nespravne heslo.");
+        setPasswordError("Nesprávné heslo.");
         return;
       }
 
@@ -527,7 +527,7 @@ export default function CardDetailsPage() {
       setPasswordInput("");
       setPasswordError("");
     } catch {
-      setPasswordError("Overeni hesla se nezdarilo.");
+      setPasswordError("Ověření hesla se nezdařilo.");
     } finally {
       setIsPasswordChecking(false);
     }
@@ -537,22 +537,22 @@ export default function CardDetailsPage() {
     <main className="card-details-page">
       <div className="card-details-toolbar">
         <button className="card-details-back" type="button" onClick={() => navigate("/accounts")}>
-          Zpet na ucty
+          Zpět na účty
         </button>
       </div>
 
       <div className="card-details-shell">
         <aside className="card-sidebar">
-          <article className="bank-card-preview" aria-label="Card preview">
+          <article className="bank-card-preview" aria-label="Náhled karty">
             <p className="chip" />
-            <p className="preview-name">{card?.isVirtual ? "Virtualni karta" : "Hlavni karta"}</p>
+            <p className="preview-name">{card?.isVirtual ? "Virtuální karta" : "Hlavní karta"}</p>
             <p className="preview-number">{card?.maskedNumber || "**** **** **** ****"}</p>
             <p className="preview-holder">
               {card ? resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--") : "--"}
             </p>
           </article>
 
-          <nav aria-label="Card sections" className="card-tabs">
+          <nav aria-label="Sekce karty" className="card-tabs">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -567,7 +567,7 @@ export default function CardDetailsPage() {
         </aside>
 
         <section className="card-main-content">
-          {isCardLoading && <p className="card-details-state">Nacitam kartu...</p>}
+          {isCardLoading && <p className="card-details-state">Načítám kartu...</p>}
           {!isCardLoading && error && <p className="card-details-state card-details-state--error">{error}</p>}
           {!isCardLoading && !error && panel}
         </section>
@@ -582,8 +582,8 @@ export default function CardDetailsPage() {
             aria-labelledby="card-reveal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="card-reveal-title">Potvrzeni hesla</h2>
-            <p className="card-details-modalHint">Pro zobrazeni detailu karty zadejte heslo od uctu.</p>
+            <h2 id="card-reveal-title">Potvrzení hesla</h2>
+            <p className="card-details-modalHint">Pro zobrazení detailu karty zadejte heslo od účtu.</p>
 
             <label className="card-details-modalField">
               <span>Heslo</span>
@@ -600,10 +600,10 @@ export default function CardDetailsPage() {
 
             <div className="card-details-modalActions">
               <button type="button" className="card-details-modalBtn card-details-modalBtn--ghost" onClick={closePasswordModal} disabled={isPasswordChecking}>
-                Zrusit
+                Zrušit
               </button>
               <button type="button" className="card-details-modalBtn card-details-modalBtn--primary" onClick={handleVerifyPassword} disabled={isPasswordChecking}>
-                {isPasswordChecking ? "Overuji..." : "Potvrdit"}
+                {isPasswordChecking ? "Ověřuji..." : "Potvrdit"}
               </button>
             </div>
           </div>

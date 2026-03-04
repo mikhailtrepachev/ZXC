@@ -5,7 +5,7 @@ import "./AccountsPage.css";
 
 const quickActions = [
   { id: "phone", title: "Platba na telefon", icon: "T" },
-  { id: "iban", title: "Platba na ucet", icon: "U" },
+  { id: "iban", title: "Platba na účet", icon: "U" },
   { id: "mobile", title: "Dobit kredit", icon: "M" },
   { id: "scan", title: "Naskenovat slozenku", icon: "S" },
 ];
@@ -125,12 +125,12 @@ function mapAccountForView(rawItem) {
 
   const label =
     type.toLowerCase() === "investment"
-      ? "Investicni ucet"
+      ? "Investiční účet"
       : normalizedCurrency.includes("euro")
-        ? "Ucet v EUR"
+        ? "Účet v EUR"
         : normalizedCurrency.includes("dollar")
-          ? "Ucet v USD"
-          : "Bezny ucet";
+          ? "Účet v USD"
+          : "Běžný účet";
 
   const suffix = accountNumber ? accountNumber.slice(-4) : "";
 
@@ -229,7 +229,7 @@ export default function AccountsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se nacist profil uctu.");
+        const message = await readErrorMessage(response, "Nepodařilo se načíst profil účtu.");
         setProfileError(message);
         setProfile(null);
         setAccounts([]);
@@ -243,7 +243,7 @@ export default function AccountsPage() {
       setProfile(payload);
       setAccounts(mappedAccounts);
     } catch {
-      setProfileError("Nepodarilo se nacist profil uctu.");
+      setProfileError("Nepodařilo se načíst profil účtu.");
       setProfile(null);
       setAccounts([]);
     } finally {
@@ -263,7 +263,7 @@ export default function AccountsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se nacist karty.");
+        const message = await readErrorMessage(response, "Nepodařilo se načíst karty.");
         setCardsError(message);
         setCards([]);
         return;
@@ -272,7 +272,7 @@ export default function AccountsPage() {
       const payload = await response.json().catch(() => []);
       setCards(Array.isArray(payload) ? payload : []);
     } catch {
-      setCardsError("Nepodarilo se nacist karty.");
+      setCardsError("Nepodařilo se načíst karty.");
       setCards([]);
     } finally {
       setIsCardsLoading(false);
@@ -304,12 +304,12 @@ export default function AccountsPage() {
 
   const handleCreateCard = async () => {
     if (!termsAccepted) {
-      setCreateCardError("Nejdrive potvrdte podminky.");
+      setCreateCardError("Nejdříve potvrďte podmínky.");
       return;
     }
 
     if (!/^\d{4}$/.test(pinCode)) {
-      setCreateCardError("Zadejte 4mistny PIN.");
+      setCreateCardError("Zadejte 4místný PIN.");
       return;
     }
 
@@ -321,7 +321,7 @@ export default function AccountsPage() {
       "";
 
     if (!targetAccountNumber) {
-      setCreateCardError("Neexistuje dostupny ucet pro vydani karty.");
+      setCreateCardError("Neexistuje dostupný účet pro vydání karty.");
       return;
     }
 
@@ -341,7 +341,7 @@ export default function AccountsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se vytvorit kartu.");
+        const message = await readErrorMessage(response, "Nepodařilo se vytvořit kartu.");
         setCreateCardError(message);
         return;
       }
@@ -357,7 +357,7 @@ export default function AccountsPage() {
       setTermsAccepted(false);
       setPinCode("");
     } catch {
-      setCreateCardError("Nepodarilo se vytvorit kartu.");
+      setCreateCardError("Nepodařilo se vytvořit kartu.");
     } finally {
       setIsCreatingCard(false);
     }
@@ -396,12 +396,12 @@ export default function AccountsPage() {
     <section className="accounts-page">
       <div className="accounts-shell">
         <aside className="accounts-sidebar">
-          <h1 className="accounts-title">{fullName ? `Dobry den, ${fullName}` : "Dobry den"}</h1>
+          <h1 className="accounts-title">{fullName ? `Dobrý den, ${fullName}` : "Dobrý den"}</h1>
 
-          {profileLoading && <p className="cards-state">Nacitam ucty...</p>}
+          {profileLoading && <p className="cards-state">Načítám účty...</p>}
           {!profileLoading && profileError && <p className="cards-state cards-state--error">{profileError}</p>}
           {!profileLoading && !profileError && accounts.length === 0 && (
-            <p className="cards-state">K tomuto profilu zatim nejsou dostupne zadne ucty.</p>
+            <p className="cards-state">K tomuto profilu zatím nejsou dostupné žádné účty.</p>
           )}
 
           {!profileLoading && !profileError && accounts.length > 0 && (
@@ -425,8 +425,8 @@ export default function AccountsPage() {
           )}
 
           <button className="credit-offer" type="button" onClick={openCreateCardModal}>
-            <p className="credit-offer__title">Mate predschvalenou kreditni kartu</p>
-            <p className="credit-offer__text">Dokoncete zadost behem par kliknuti.</p>
+            <p className="credit-offer__title">Máte předschválenou kreditní kartu</p>
+            <p className="credit-offer__text">Dokončete žádost během pár kliknutí.</p>
           </button>
 
           <section className="cards-section">
@@ -437,10 +437,10 @@ export default function AccountsPage() {
               </button>
             </div>
 
-            {isCardsLoading && <p className="cards-state">Nacitam karty...</p>}
+            {isCardsLoading && <p className="cards-state">Načítám karty...</p>}
             {!isCardsLoading && cardsError && <p className="cards-state cards-state--error">{cardsError}</p>}
             {!isCardsLoading && !cardsError && cards.length === 0 && (
-              <p className="cards-state">Zatim nemate zadne karty.</p>
+              <p className="cards-state">Zatím nemáte žádné karty.</p>
             )}
 
             {!isCardsLoading && !cardsError && cards.length > 0 && (
@@ -459,7 +459,7 @@ export default function AccountsPage() {
                         {resolveUserDisplayNameByEmail(profileEmail, card.holderName)}
                       </p>
                       <p className="account-card__chip">
-                        {card.isVirtual ? "Virtualni" : "Plastova"} - exp {card.expiryDate}
+                        {card.isVirtual ? "Virtuální" : "Plastová"} - exp {card.expiryDate}
                       </p>
                     </div>
                   </button>
@@ -486,8 +486,8 @@ export default function AccountsPage() {
 
           <section className="panel">
             <div className="panel__head">
-              <h2>Cashback a odmeny</h2>
-              <a href="/">Vsechny nabidky</a>
+              <h2>Cashback a odměny</h2>
+              <a href="/">Všechny nabídky</a>
             </div>
 
             <div className="cashback-grid">
@@ -503,21 +503,21 @@ export default function AccountsPage() {
           <section className="panel operations">
             <div className="panel__head">
               <h2>
-                Limity a prehled <span>{">"}</span>
+                Limity a přehled <span>{">"}</span>
               </h2>
             </div>
 
             <div className="operations__metrics">
               <article className="operations__metric">
-                <p>Dennni limit prevodu</p>
+                <p>Denní limit převodu</p>
                 <strong>{formatMoney(transferLimit, "Koruna")}</strong>
               </article>
               <article className="operations__metric">
-                <p>Limit internetovych plateb</p>
+                <p>Limit internetových plateb</p>
                 <strong>{formatMoney(internetLimit, "Koruna")}</strong>
               </article>
               <article className="operations__metric">
-                <p>Pocet uctu</p>
+                <p>Počet účtů</p>
                 <strong>{accounts.length}</strong>
               </article>
             </div>
@@ -534,13 +534,13 @@ export default function AccountsPage() {
             aria-labelledby="new-card-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="new-card-title">Nova kreditni karta</h2>
-            <p className="card-modal__intro">Pred vytvorenim karty si prectete podminky:</p>
+            <h2 id="new-card-title">Nová kreditní karta</h2>
+            <p className="card-modal__intro">Před vytvořením karty si přečtěte podmínky:</p>
 
             <ul className="card-modal__terms">
-              <li>Kartu lze pouzivat pouze v souladu s obchodnimi podminkami banky.</li>
-              <li>Za bezpecnost plateb a prihlasovacich udaju odpovida drztel karty.</li>
-              <li>Banka muze kartu zablokovat pri podezreni na podvod nebo zneuziti.</li>
+              <li>Kartu lze používat pouze v souladu s obchodními podmínkami banky.</li>
+              <li>Za bezpečnost plateb a přihlašovacích údajů odpovídá držitel karty.</li>
+              <li>Banka může kartu zablokovat pri podezření na podvod nebo zneužití.</li>
             </ul>
 
             <label className="card-modal__checkbox">
@@ -549,11 +549,11 @@ export default function AccountsPage() {
                 checked={termsAccepted}
                 onChange={(event) => setTermsAccepted(event.target.checked)}
               />
-              <span>Souhlasim s podminkami vydani karty.</span>
+              <span>Souhlasím s podmínkami vydání karty.</span>
             </label>
 
             <label className="card-modal__pin">
-              <span>PIN karty (4 cisla)</span>
+              <span>PIN karty (4 čísla)</span>
               <input
                 type="password"
                 inputMode="numeric"
@@ -574,7 +574,7 @@ export default function AccountsPage() {
                 onClick={closeCreateCardModal}
                 disabled={isCreatingCard}
               >
-                Zrusit
+                Zrušit
               </button>
               <button
                 className="card-modal__button card-modal__button--primary"
@@ -582,7 +582,7 @@ export default function AccountsPage() {
                 onClick={handleCreateCard}
                 disabled={isCreatingCard || !termsAccepted}
               >
-                {isCreatingCard ? "Vytvarim..." : "Potvrdit a vytvorit kartu"}
+                {isCreatingCard ? "Vytvářím..." : "Potvrdit a vytvořit kartu"}
               </button>
             </div>
           </div>

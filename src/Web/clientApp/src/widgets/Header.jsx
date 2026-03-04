@@ -10,9 +10,9 @@ import {
 import "./header_style.css";
 
 const NAV = [
-  { label: "Domu", href: "/accounts" },
+  { label: "Domů", href: "/accounts" },
   { label: "Moje karty", href: "/cards" },
-  { label: "Spocitat uver", href: "/loans" },
+  { label: "Spočítat úvěr", href: "/loans" },
 ];
 
 const LOGO_URL = "https://i.ytimg.com/vi/TiE9pWAwYOs/maxresdefault.jpg";
@@ -560,7 +560,7 @@ export default function Header() {
     <header className="site-header">
       <div className="site-header__container">
         <div className="site-header__main">
-          <Link className="site-header__logo" to="/accounts" aria-label="Domu">
+          <Link className="site-header__logo" to="/accounts" aria-label="Domů">
             <span className="site-header__logoMark" aria-hidden="true">
               <img className="site-header__logoImg" src={LOGO_URL} alt="" />
             </span>
@@ -571,7 +571,7 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="site-header__nav" aria-label="Hlavni menu">
+          <nav className="site-header__nav" aria-label="Hlavní menu">
             <ul className="site-header__navList">
               {NAV.map((item) => (
                 <li key={item.href} className="site-header__navItem">
@@ -583,7 +583,7 @@ export default function Header() {
               {isAdmin && (
                 <li className="site-header__navItem">
                   <Link className="site-header__navLink" to="/admin">
-                    Admin
+                    Administrace
                   </Link>
                 </li>
               )}
@@ -604,7 +604,7 @@ export default function Header() {
                       setNotificationsOpen((value) => !value);
                       setUserMenuOpen(false);
                     }}
-                    aria-label="Upozorneni"
+                    aria-label="Upozornění"
                     aria-expanded={notificationsOpen}
                     aria-haspopup="menu"
                   >
@@ -733,7 +733,7 @@ export default function Header() {
             <button
               className="site-header__burger"
               type="button"
-              aria-label={mobileOpen ? "Zavrit menu" : "Otevrit menu"}
+              aria-label={mobileOpen ? "Zavřít menu" : "Otevřít menu"}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((value) => !value)}
             >
@@ -746,12 +746,12 @@ export default function Header() {
       <div className={`mobile-menu ${mobileOpen ? "is-open" : ""}`}>
         <div className="mobile-menu__panel">
           <div className="mobile-menu__header">
-            <span className="mobile-menu__title">Menu</span>
+            <span className="mobile-menu__title">Nabídka</span>
             <button
               className="site-header__iconButton"
               type="button"
               onClick={() => setMobileOpen(false)}
-              aria-label="Zavrit"
+              aria-label="Zavřít"
             >
               <CloseIcon />
             </button>
@@ -785,17 +785,17 @@ export default function Header() {
             <div className="mobile-menu__label">Navigace</div>
             <div className="mobile-menu__links">
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
-                Domu
+                Domů
               </Link>
               <Link to="/cards" onClick={() => setMobileOpen(false)}>
                 Moje karty
               </Link>
               <Link to="/loans" onClick={() => setMobileOpen(false)}>
-                Spocitat uver
+                Spočítat úvěr
               </Link>
               {isAdmin && (
                 <Link to="/admin" onClick={() => setMobileOpen(false)}>
-                  Admin
+                  Administrace
                 </Link>
               )}
             </div>
@@ -808,7 +808,7 @@ export default function Header() {
                 type="button"
                 onClick={handleLogout}
               >
-                Odhlasit se
+                Odhlásit se
               </button>
             ) : (
               <>
@@ -817,14 +817,14 @@ export default function Header() {
                   type="button"
                   onClick={() => (window.location.href = "/login")}
                 >
-                  Prihlasit se
+                  Přihlásit se
                 </button>
                 <button
                   className="site-header__button site-header__button--primary"
                   type="button"
                   onClick={() => (window.location.href = "/register")}
                 >
-                  Otevrit ucet
+                  Otevřít účet
                 </button>
               </>
             )}
