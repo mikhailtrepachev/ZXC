@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore; // <-- Это нужно для FirstOrDefa
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Entities;
 
-namespace ZxcBank.Application.UserSessions.Commands.CreateUserSession;
+namespace ZxcBank.Application.UserSessions.CreateUserSession;
 
 // 1. Сама Команда (остается без изменений)
 public record CreateUserSessionCommand : IRequest<int>
