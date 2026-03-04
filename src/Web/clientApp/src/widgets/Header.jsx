@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   getAccessToken,
   getCurrentUserFromToken,
+  hasRole,
   logoutUser,
   resolveUserDisplayNameByEmail,
 } from "../auth/session";
@@ -197,6 +198,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -222,6 +224,7 @@ export default function Header() {
         if (isMounted) {
           setCurrentUser("");
           setIsAuthorized(false);
+          setIsAdmin(false);
         }
         return;
       }
@@ -247,6 +250,7 @@ export default function Header() {
           if (isMounted) {
             setCurrentUser(userLabel);
             setIsAuthorized(true);
+            setIsAdmin(hasRole("Administrator"));
           }
           return;
         } catch {
@@ -257,6 +261,7 @@ export default function Header() {
       if (isMounted) {
         setCurrentUser("");
         setIsAuthorized(false);
+        setIsAdmin(false);
       }
     }
 
@@ -535,6 +540,7 @@ export default function Header() {
     await logoutUser();
     setCurrentUser("");
     setIsAuthorized(false);
+    setIsAdmin(false);
     setMobileOpen(false);
     setUserMenuOpen(false);
     setNotificationsOpen(false);
@@ -573,6 +579,13 @@ export default function Header() {
                   </Link>
                 </li>
               ))}
+              {isAdmin && (
+                <li className="site-header__navItem">
+                  <Link className="site-header__navLink" to="/admin">
+                    Admin
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
 
@@ -779,6 +792,11 @@ export default function Header() {
               <Link to="/loans" onClick={() => setMobileOpen(false)}>
                 Spocitat uver
               </Link>
+              {isAdmin && (
+                <Link to="/admin" onClick={() => setMobileOpen(false)}>
+                  Admin
+                </Link>
+              )}
             </div>
           </div>
 
