@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using System.Reflection;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Entities;
@@ -85,7 +86,6 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
         {
             throw new Exception($"Prekrocen denni limit. Vas limit: {client.DailyTransferLimit}. Dnes utraceno: {spentToday}.");
         }
-        // ------------------------------------
 
         var receiverAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.AccountNumber == request.ToAccountNumber, cancellationToken);
@@ -134,7 +134,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
         senderAccount.Balance -= amountToDebit;
         receiverAccount.Balance += amountToCredit;
 
-        var transaction = new Domain.Entities.Transaction
+        Domain.Entities.Transaction transaction = new Domain.Entities.Transaction
         {
             FromAccountId = senderAccount.AccountNumber,
             ToAccountId = receiverAccount.AccountNumber,
@@ -142,6 +142,13 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
             Description = description,
         };
 
+        Notification notification = new Notification
+        {
+            UserId = receiverAccount.OwnerId,
+            Message = $"Obdrželi jste převod ve výši {amountToDebit}. Odesílatel: {senderAccount.Client.FirstName} {senderAccount.Client.LastName}",
+        };
+
+        _context.Notifications.Add(notification);
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync(cancellationToken);
 
