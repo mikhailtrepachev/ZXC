@@ -1,16 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { getAccessToken } from "../auth/session";
 import "./PageLayout.css";
 import "./AdminPage.css";
 
-const USERS_ENDPOINTS = [
-  "/api/Admins/users",
-  "/api/Admins/clients",
-  "/api/Admins/database-users",
-  "/api/Admins/all-users",
-];
-
+const USERS_ENDPOINT = "/api/Admins/users";
 const SOFT_DELETE_STORAGE_KEY = "zxc_admin_soft_deleted_accounts";
 
 function getAuthHeaders(includeJson = false) {
@@ -86,7 +79,12 @@ function extractAccountList(payload) {
       continue;
     }
 
-    if ("accountNumber" in first || "AccountNumber" in first || "isFrozen" in first || "IsFrozen" in first) {
+    if (
+      "accountNumber" in first ||
+      "AccountNumber" in first ||
+      "isFrozen" in first ||
+      "IsFrozen" in first
+    ) {
       return value;
     }
   }
@@ -176,12 +174,9 @@ function formatDateTime(value) {
 }
 
 export default function AdminPage() {
-  const navigate = useNavigate();
-
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState("");
-  const [usersEndpoint, setUsersEndpoint] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
 
   const [manualUserId, setManualUserId] = useState("");
@@ -221,60 +216,47 @@ export default function AdminPage() {
   const loadUsers = async () => {
     setUsersLoading(true);
     setUsersError("");
-    setUsersEndpoint("");
 
-    const headers = getAuthHeaders();
+    try {
+      const response = await fetch(USERS_ENDPOINT, {
+        method: "GET",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
 
-    for (const endpoint of USERS_ENDPOINTS) {
-      try {
-        const response = await fetch(endpoint, {
-          method: "GET",
-          credentials: "include",
-          headers,
-        });
-
-        if (!response.ok) {
-          if (response.status === 404 || response.status === 405) {
-            continue;
-          }
-
-          const message = await readErrorMessage(response, "Nepodařilo se načíst databázi uživatelů.");
-          setUsersError(message);
-          setUsers([]);
-          setUsersLoading(false);
-          return;
-        }
-
-        const payload = await response.json().catch(() => []);
-        const list = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.items)
-            ? payload.items
-            : Array.isArray(payload?.Items)
-              ? payload.Items
-              : [];
-
-        const mappedUsers = list.map(mapUser).filter((user) => user.id);
-        setUsers(mappedUsers);
-        setUsersEndpoint(endpoint);
-        if (mappedUsers.length > 0) {
-          setSelectedUserId(mappedUsers[0].id);
-          setManualUserId(mappedUsers[0].userId || "");
-        } else {
-          setSelectedUserId("");
-        }
-        setUsersLoading(false);
+      if (!response.ok) {
+        const message = await readErrorMessage(response, "Nepodarilo se nacist seznam uzivatelu.");
+        setUsers([]);
+        setSelectedUserId("");
+        setUsersError(message);
         return;
-      } catch {
-        // try next endpoint
       }
-    }
 
-    setUsers([]);
-    setUsersError(
-      "Backend neexponuje endpoint pro výpis všech uživatelů. Pro logy použijte UserId ručně."
-    );
-    setUsersLoading(false);
+      const payload = await response.json().catch(() => []);
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.Items)
+            ? payload.Items
+            : [];
+
+      const mappedUsers = list.map(mapUser).filter((user) => user.id);
+      setUsers(mappedUsers);
+
+      if (mappedUsers.length > 0) {
+        setSelectedUserId(mappedUsers[0].id);
+        setManualUserId(mappedUsers[0].userId || "");
+      } else {
+        setSelectedUserId("");
+      }
+    } catch {
+      setUsers([]);
+      setSelectedUserId("");
+      setUsersError("Nepodarilo se nacist seznam uzivatelu.");
+    } finally {
+      setUsersLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -301,7 +283,7 @@ export default function AdminPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodařilo se načíst logy uživatele.");
+        const message = await readErrorMessage(response, "Nepodarilo se nacist logy uzivatele.");
         setLogsError(message);
         return;
       }
@@ -311,7 +293,7 @@ export default function AdminPage() {
       setLogs(list);
       setManualUserId(normalizedId);
     } catch {
-      setLogsError("Nepodařilo se načíst logy uživatele.");
+      setLogsError("Nepodarilo se nacist logy uzivatele.");
     } finally {
       setLogsLoading(false);
     }
@@ -330,7 +312,7 @@ export default function AdminPage() {
 
   const freezeAccount = async (accountId, freeze) => {
     if (!Number.isFinite(accountId) || accountId <= 0) {
-      setActionError("Neplatné AccountId.");
+      setActionError("Neplatne AccountId.");
       return false;
     }
 
@@ -349,17 +331,17 @@ export default function AdminPage() {
       if (!response.ok) {
         const message = await readErrorMessage(
           response,
-          freeze ? "Zmrazení účtu se nepodařilo." : "Rozmrazení účtu se nepodařilo."
+          freeze ? "Zmrazeni uctu se nepodarilo." : "Rozmrazeni uctu se nepodarilo."
         );
         setActionError(message);
         return false;
       }
 
       applyFreezeState(accountId, freeze);
-      setActionMessage(freeze ? "Účet byl zmrazen." : "Účet byl rozmrazen.");
+      setActionMessage(freeze ? "Ucet byl zmrazen." : "Ucet byl rozmrazen.");
       return true;
     } catch {
-      setActionError(freeze ? "Zmrazení účtu se nepodařilo." : "Rozmrazení účtu se nepodařilo.");
+      setActionError(freeze ? "Zmrazeni uctu se nepodarilo." : "Rozmrazeni uctu se nepodarilo.");
       return false;
     } finally {
       setIsActionLoading(false);
@@ -376,7 +358,7 @@ export default function AdminPage() {
       ...previous,
       [String(accountId)]: true,
     }));
-    setActionMessage("Účet byl dočasně skryt (lokálně skrytý a zmrazený).");
+    setActionMessage("Ucet byl docasne skryt (lokalne) a zmrazen.");
   };
 
   const restoreSoftDeletedAccount = async (accountId) => {
@@ -390,7 +372,7 @@ export default function AdminPage() {
       delete next[String(accountId)];
       return next;
     });
-    setActionMessage("Dočasné skrytí bylo zrušeno a účet je aktivní.");
+    setActionMessage("Docasne skryti bylo zruseno a ucet je aktivni.");
   };
 
   const handleManualFreeze = () => {
@@ -419,22 +401,22 @@ export default function AdminPage() {
         <div className="admin-page__head">
           <div>
             <h1 className="page__title">Administrace</h1>
-            <p className="page__subtitle">Správa uživatelů, účtů, zmrazení a dočasného skrytí.</p>
+            <p className="page__subtitle">Sprava uzivatelu, uctu, zmrazeni a docasneho skryti.</p>
           </div>
           <button className="page__chip" type="button" onClick={loadUsers} disabled={usersLoading}>
-            {usersLoading ? "Načítám..." : "Obnovit"}
+            {usersLoading ? "Nacitam..." : "Obnovit"}
           </button>
         </div>
 
         <div className="page__grid admin-page__grid">
           <section className="page__panel">
-            <h2 className="page__panelTitle">Databáze uživatelů</h2>
-            {usersEndpoint && <p className="admin-page__hint">Zdroj: {usersEndpoint}</p>}
+            <h2 className="page__panelTitle">Seznam uzivatelu</h2>
+            <p className="admin-page__hint">Zdroj: {USERS_ENDPOINT}</p>
 
-            {usersLoading && <p className="admin-page__state">Načítám uživatele...</p>}
+            {usersLoading && <p className="admin-page__state">Nacitam uzivatele...</p>}
             {!usersLoading && usersError && <p className="admin-page__state admin-page__state--error">{usersError}</p>}
             {!usersLoading && !usersError && users.length === 0 && (
-              <p className="admin-page__state">Backend vrátil prázdný seznam uživatelů.</p>
+              <p className="admin-page__state">Backend vratil prazdny seznam uzivatelu.</p>
             )}
 
             {!usersLoading && !usersError && users.length > 0 && (
@@ -452,8 +434,8 @@ export default function AdminPage() {
                     }}
                   >
                     <span className="admin-page__userName">{user.fullName}</span>
-                    <span className="admin-page__userMeta">{user.email || user.userId || user.id}</span>
-                    <span className="admin-page__userMeta">Účty: {user.accounts.length}</span>
+                    <span className="admin-page__userMeta">UserId: {user.userId || "--"}</span>
+                    <span className="admin-page__userMeta">Ucty v odpovedi: {user.accounts.length}</span>
                   </button>
                 ))}
               </div>
@@ -461,11 +443,13 @@ export default function AdminPage() {
           </section>
 
           <section className="page__panel">
-            <h2 className="page__panelTitle">Účty uživatele</h2>
-            {!selectedUser && <p className="admin-page__state">Vyberte uživatele.</p>}
+            <h2 className="page__panelTitle">Ucty uzivatele</h2>
+            {!selectedUser && <p className="admin-page__state">Vyberte uzivatele.</p>}
 
             {selectedUser && accountsView.length === 0 && (
-              <p className="admin-page__state">Pro vybraného uživatele nejsou dostupné žádné účty.</p>
+              <p className="admin-page__state">
+                Endpoint /api/Admins/users vraci pouze UserId a FullName. Spravu uctu provedte pomoci AccountId nize.
+              </p>
             )}
 
             {selectedUser && accountsView.length > 0 && (
@@ -475,7 +459,7 @@ export default function AdminPage() {
                     <div className="admin-page__accountTop">
                       <strong>{account.accountNumber || `Account #${account.id || "-"}`}</strong>
                       <span className={`admin-page__badge ${account.isFrozen ? "is-frozen" : "is-active"}`}>
-                        {account.isFrozen ? "Zmrazený" : "Aktivní"}
+                        {account.isFrozen ? "Zmrazeny" : "Aktivni"}
                       </span>
                     </div>
 
@@ -483,22 +467,42 @@ export default function AdminPage() {
                       ID: {account.id || "--"} | {account.type || "--"} | {account.currency || "--"}
                     </p>
                     <p className="admin-page__accountMeta">
-                      Dočasné skrytí: {account.isSoftDeleted ? "Ano" : "Ne"}
+                      Docasne skryti: {account.isSoftDeleted ? "Ano" : "Ne"}
                     </p>
 
                     <div className="admin-page__actions">
-                      <button type="button" className="page__chip" onClick={() => freezeAccount(account.id, true)} disabled={isActionLoading || !account.id}>
+                      <button
+                        type="button"
+                        className="page__chip"
+                        onClick={() => freezeAccount(account.id, true)}
+                        disabled={isActionLoading || !account.id}
+                      >
                         Zamrazit
                       </button>
-                      <button type="button" className="page__chip" onClick={() => freezeAccount(account.id, false)} disabled={isActionLoading || !account.id}>
+                      <button
+                        type="button"
+                        className="page__chip"
+                        onClick={() => freezeAccount(account.id, false)}
+                        disabled={isActionLoading || !account.id}
+                      >
                         Rozmrazit
                       </button>
                       {!account.isSoftDeleted ? (
-                        <button type="button" className="page__chip" onClick={() => softDeleteAccount(account.id)} disabled={isActionLoading || !account.id}>
-                          Dočasně skrýt
+                        <button
+                          type="button"
+                          className="page__chip"
+                          onClick={() => softDeleteAccount(account.id)}
+                          disabled={isActionLoading || !account.id}
+                        >
+                          Docasne skryt
                         </button>
                       ) : (
-                        <button type="button" className="page__chip" onClick={() => restoreSoftDeletedAccount(account.id)} disabled={isActionLoading || !account.id}>
+                        <button
+                          type="button"
+                          className="page__chip"
+                          onClick={() => restoreSoftDeletedAccount(account.id)}
+                          disabled={isActionLoading || !account.id}
+                        >
                           Obnovit
                         </button>
                       )}
@@ -510,7 +514,7 @@ export default function AdminPage() {
           </section>
 
           <section className="page__panel page__panel--full">
-            <h2 className="page__panelTitle">Ruční správa podle ID</h2>
+            <h2 className="page__panelTitle">Rucni sprava podle ID</h2>
             <div className="admin-page__manualGrid">
               <label>
                 UserId (pro logy)
@@ -518,11 +522,11 @@ export default function AdminPage() {
                   type="text"
                   value={manualUserId}
                   onChange={(event) => setManualUserId(event.target.value)}
-                  placeholder="např. guid uživatele"
+                  placeholder="napr. guid uzivatele"
                 />
               </label>
               <button type="button" className="page__chip" onClick={() => loadUserLogs(manualUserId)} disabled={logsLoading}>
-                {logsLoading ? "Načítám logy..." : "Načíst logy"}
+                {logsLoading ? "Nacitam logy..." : "Nacist logy"}
               </button>
 
               <label>
@@ -533,7 +537,7 @@ export default function AdminPage() {
                   step="1"
                   value={manualAccountId}
                   onChange={(event) => setManualAccountId(event.target.value)}
-                  placeholder="např. 12"
+                  placeholder="napr. 12"
                 />
               </label>
               <div className="admin-page__actions">
@@ -544,7 +548,7 @@ export default function AdminPage() {
                   Rozmrazit
                 </button>
                 <button type="button" className="page__chip" onClick={handleManualSoftDelete} disabled={isActionLoading}>
-                  Dočasně skrýt
+                  Docasne skryt
                 </button>
                 <button type="button" className="page__chip" onClick={handleManualRestore} disabled={isActionLoading}>
                   Obnovit
@@ -557,11 +561,11 @@ export default function AdminPage() {
           </section>
 
           <section className="page__panel page__panel--full">
-            <h2 className="page__panelTitle">Logy uživatele</h2>
+            <h2 className="page__panelTitle">Logy uzivatele</h2>
             {logsError && <p className="admin-page__state admin-page__state--error">{logsError}</p>}
-            {!logsError && logsLoading && <p className="admin-page__state">Načítám logy...</p>}
+            {!logsError && logsLoading && <p className="admin-page__state">Nacitam logy...</p>}
             {!logsError && !logsLoading && logs.length === 0 && (
-              <p className="admin-page__state">Logy zatím nejsou načteny nebo jsou prázdné.</p>
+              <p className="admin-page__state">Logy zatim nejsou nacteny nebo jsou prazdne.</p>
             )}
 
             {!logsError && !logsLoading && logs.length > 0 && (
@@ -577,10 +581,6 @@ export default function AdminPage() {
             )}
           </section>
         </div>
-
-        <button className="page__button" type="button" onClick={() => navigate("/accounts")}>
-          Zpět na banku
-        </button>
       </div>
     </div>
   );
