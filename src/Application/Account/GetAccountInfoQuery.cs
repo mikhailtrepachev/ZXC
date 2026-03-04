@@ -41,15 +41,25 @@ public class GetAccountInfoQueryHandler : IRequestHandler<GetAccountInfoQuery, C
         // 3. Получаем имя пользователя
         string? userName = await _identityService.GetUserNameAsync(userId);
 
-        // 4. Собираем ответ
+        string fullName;
+
+        if (!string.IsNullOrEmpty(client.FirstName) || !string.IsNullOrEmpty(client.LastName))
+        {
+            fullName = $"{client.LastName} {client.FirstName}".Trim();
+        } 
+        else
+        {
+            fullName = "User";
+        }
+
         return new Account.ClientProfileDto
         {
-            FullName = userName ?? "User",
+            FullName = fullName,
             Email = userName ?? string.Empty,
-            
+
             DailyTransferLimit = client.DailyTransferLimit,
             InternetPaymentLimit = client.InternetPaymentLimit,
-            
+
             Accounts = accounts.Select(a => new AccountItemDto
             {
                 Id = a.Id,
