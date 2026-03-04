@@ -19,10 +19,21 @@ import {
   isAuthenticated as checkAuthentication,
 } from "./auth/session";
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const IDLE_ACTIVITY_EVENTS = [
+  "mousedown",
+  "mousemove",
+  "keydown",
+  "scroll",
+  "touchstart",
+  "click",
+];
+
 function ProtectedRoute({ children, requireAdmin = false }) {
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -50,7 +61,51 @@ function ProtectedRoute({ children, requireAdmin = false }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let timeoutId = null;
+
+    const startIdleTimer = () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+
+      timeoutId = window.setTimeout(() => {
+        clearSession();
+        setTimedOut(true);
+        setIsAuthenticated(false);
+        setIsAdmin(false);
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        startIdleTimer();
+      }
+    };
+
+    for (const eventName of IDLE_ACTIVITY_EVENTS) {
+      window.addEventListener(eventName, startIdleTimer, { passive: true });
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    startIdleTimer();
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      for (const eventName of IDLE_ACTIVITY_EVENTS) {
+        window.removeEventListener(eventName, startIdleTimer);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isAuthenticated]);
+
   if (isChecking) return <div />;
+  if (timedOut) return <Navigate to="/login" replace />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (requireAdmin && !isAdmin) return <Navigate to="/accounts" replace />;
 
