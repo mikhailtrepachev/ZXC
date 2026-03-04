@@ -49,7 +49,10 @@ export default function LoginPage() {
       });
 
       if (!response.ok) {
-        const apiError = await extractApiError(response, "Neplatny e-mail nebo heslo.");
+        const apiError = await extractApiError(
+          response,
+          "Neplatný e-mail nebo heslo.",
+        );
         setError(apiError);
         return;
       }
@@ -58,7 +61,7 @@ export default function LoginPage() {
       persistSession(payload);
       window.location.href = "/accounts";
     } catch {
-      setError("Prihlaseni se nepodarilo. Zkuste to znovu.");
+      setError("Přihlášení se nepodařilo. Zkuste to znovu.");
     } finally {
       setIsSubmitting(false);
     }
@@ -67,7 +70,7 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h2>Prihlaseni</h2>
+        <h2>Přihlášení</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
@@ -93,12 +96,15 @@ export default function LoginPage() {
           </div>
 
           <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Prihlasuji..." : "Prihlasit se"}
+            {isSubmitting ? "Přihlašuji..." : "Přihlásit se"}
           </button>
         </form>
 
         <p className="switch-link">
-          Nemate ucet? <span onClick={() => (window.location.href = "/register")}>Vytvorit ucet</span>
+          Nemáte účet?{" "}
+          <span onClick={() => (window.location.href = "/register")}>
+            Vytvořit účet
+          </span>
         </p>
         {error && <p className="error-text">{error}</p>}
       </div>
