@@ -6,57 +6,27 @@
 #A4B3B6 - muted text
 */
 
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
-
 * {
   box-sizing: border-box;
 }
-
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
 
 .login-container {
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #2A1B3D, #44318D);
+  background: linear-gradient(135deg, #2a1b3d, #44318d);
   padding: 20px;
   font-family: "Inter", sans-serif;
 }
-
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
 
 .login-card {
   width: 420px;
   padding: 50px 45px;
   border-radius: 18px;
-  background: #2A1B3D;
+  background: #2a1b3d;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
-  color: white;
+  color: #ffffff;
   animation: fadeIn 0.4s ease;
 }
 
@@ -65,19 +35,9 @@
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #E98074;
+  color: #e98074;
   text-transform: uppercase;
 }
-
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
 
 .input-group {
   display: flex;
@@ -88,46 +48,26 @@
 .input-group label {
   font-size: 13px;
   margin-bottom: 8px;
-  color: #A4B3B6;
+  color: #a4b3b6;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
-
 .input-group input {
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #44318D;
-  background: #44318D;
-  color: white;
+  border: 1px solid #44318d;
+  background: #44318d;
+  color: #ffffff;
   font-size: 14px;
   transition: 0.25s ease;
 }
 
 .input-group input:focus {
   outline: none;
-  border-color: #D83F87;
+  border-color: #d83f87;
   box-shadow: 0 0 0 3px rgba(216, 63, 135, 0.3);
 }
-
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
 
 .login-card button {
   width: 100%;
@@ -135,8 +75,8 @@
   margin-top: 15px;
   border-radius: 10px;
   border: none;
-  background: #D83F87;
-  color: white;
+  background: #d83f87;
+  color: #ffffff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -146,7 +86,7 @@
 }
 
 .login-card button:hover {
-  background: #E98074;
+  background: #e98074;
   transform: translateY(-2px);
 }
 
@@ -154,38 +94,33 @@
   transform: translateY(0);
 }
 
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
+.login-card button:disabled {
+  background: #8a6b86;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.85;
+}
 
 .error-text {
   margin-top: 14px;
   font-size: 13px;
-  color: #E98074;
+  color: #e98074;
   text-align: center;
 }
 
- param($m)
-  switch -Regex ($m.Value) {
-    'RESET' { '/* ===== RESET ===== */' ; break }
-    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
-    'INPUT' { '/* ===== INPUT ===== */' ; break }
-    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
-    'ERROR' { '/* ===== ERROR ===== */' ; break }
-    default { $m.Value }
-  }
+.lockout-text {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #ffd88a;
+  text-align: center;
+}
 
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(15px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -196,11 +131,11 @@
   margin-top: 18px;
   text-align: center;
   font-size: 13px;
-  color: #A4B3B6;
+  color: #a4b3b6;
 }
 
 .switch-link span {
-  color: #D83F87;
+  color: #d83f87;
   cursor: pointer;
   font-weight: 600;
 }
