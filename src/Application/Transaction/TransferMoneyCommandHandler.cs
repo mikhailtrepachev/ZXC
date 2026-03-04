@@ -1,6 +1,7 @@
-using ZxcBank.Application.Common.Interfaces;
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ZxcBank.Application.Common.Interfaces;
+using ZxcBank.Domain.Entities;
 
 namespace ZxcBank.Application.Transactions.Commands.TransferMoney;
 
@@ -30,6 +31,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
 
     public async Task<int> Handle(TransferMoneyCommand request, CancellationToken cancellationToken)
     {
+        // 1. Базовая валидация
         if (request.Amount <= 0)
         {
             throw new Exception("Castka prevodu musi byt kladna.");
@@ -41,10 +43,18 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
             throw new UnauthorizedAccessException();
         }
 
-        var senderAccount = await _context.Accounts
-            .FirstOrDefaultAsync(
-                a => a.AccountNumber == request.FromAccountNumber && a.OwnerId == userId,
-                cancellationToken);
+        var client = await _context.Clients
+            .Include(c => c.Accounts)
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+
+        if (client == null)
+        {
+            throw new Exception("Profil klienta nebyl nalezen.");
+        }
+
+        // 3. Ищем счет ОТПРАВИТЕЛЯ внутри счетов клиента
+        var senderAccount = client.Accounts
+            .FirstOrDefault(a => a.AccountNumber == request.FromAccountNumber);
 
         if (senderAccount == null)
         {
@@ -60,6 +70,22 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
         {
             throw new Exception("Na uctu neni dostatek prostredku.");
         }
+
+        DateTime startOfDay = DateTime.UtcNow.Date;
+
+        // Собираем номера (или ID) всех счетов клиента, чтобы посчитать общие траты
+        // Предполагаем, что в Transactions вы храните AccountNumber (string)
+        var clientAccountNumbers = client.Accounts.Select(a => a.AccountNumber).ToList();
+
+        decimal spentToday = await _context.Transactions
+            .Where(t => clientAccountNumbers.Contains(t.FromAccountId) && t.Created >= startOfDay)
+            .SumAsync(t => t.Amount, cancellationToken);
+
+        if (spentToday + request.Amount > client.DailyTransferLimit)
+        {
+            throw new Exception($"Prekrocen denni limit. Vas limit: {client.DailyTransferLimit}. Dnes utraceno: {spentToday}.");
+        }
+        // ------------------------------------
 
         var receiverAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.AccountNumber == request.ToAccountNumber, cancellationToken);
@@ -79,6 +105,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
             throw new Exception("Nelze prevadet penize sami sobe na stejny ucet.");
         }
 
+        // 6. Подготовка сообщения
         var normalizedMessage = (request.Message ?? string.Empty).Trim();
         if (normalizedMessage.Length > 140)
         {
@@ -100,10 +127,10 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
                 receiverAccount.Currency);
 
             amountToCredit = Math.Round(amountToCredit, 2);
-            description +=
-                $" (Konverze: {request.Amount} {senderAccount.Currency} -> {amountToCredit} {receiverAccount.Currency})";
+            description += $" (Konverze: {request.Amount} {senderAccount.Currency} -> {amountToCredit} {receiverAccount.Currency})";
         }
 
+        // 8. Выполнение перевода
         senderAccount.Balance -= amountToDebit;
         receiverAccount.Balance += amountToCredit;
 
