@@ -136,22 +136,22 @@ export default function CreateAccountPage() {
     const normalizedStreet = street.trim();
 
     if (!normalizedFirstName || !normalizedLastName) {
-      setError("Vyplnte jmeno i prijmeni.");
+      setError("Vyplňte jméno i příjmení.");
       return;
     }
 
     if (!normalizedPhoneNumber) {
-      setError("Vyplnte telefonni cislo.");
+      setError("Vyplňte telefonní číslo.");
       return;
     }
 
     if (!/^\+?[0-9\s\-()]{7,20}$/.test(normalizedPhoneNumber)) {
-      setError("Zadejte platne telefonni cislo.");
+      setError("Zadejte platné telefonní číslo.");
       return;
     }
 
     if (!normalizedStateName || !normalizedStreet) {
-      setError("Vyplnte stat a ulici.");
+      setError("Vyplňte stát a ulici.");
       return;
     }
 
@@ -162,7 +162,7 @@ export default function CreateAccountPage() {
 
     if (!PASSWORD_POLICY_REGEX.test(password)) {
       setError(
-        "Heslo musi mit alespon 6 znaku, velke i male pismeno, cislo a specialni znak (napr. _, !, @)."
+        "Heslo musí mít alespoň 6 znaků, velké i malé písmeno, číslo a speciální znak (např. _, !, @)."
       );
       return;
     }
@@ -217,18 +217,18 @@ export default function CreateAccountPage() {
       return;
     }
 
-    setSuccess("Ucet byl uspesne vytvoren v databazi. Nyni se prihlaste.");
+    setSuccess("Účet byl úspěšně vytvořen v databázi. Nyní se přihlaste.");
     setIsSubmitting(false);
   };
 
   return (
     <div className="register-container">
       <div className="register-card">
-        <h2>Vytvoreni uctu</h2>
+        <h2>Vytvoření účtu</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label>Jmeno</label>
+            <label>Jméno</label>
             <input
               type="text"
               required
@@ -238,7 +238,7 @@ export default function CreateAccountPage() {
           </div>
 
           <div className="input-group">
-            <label>Prijmeni</label>
+            <label>Příjmení</label>
             <input
               type="text"
               required
@@ -269,13 +269,13 @@ export default function CreateAccountPage() {
           </div>
 
           <div className="input-group">
-            <label>Stat</label>
+            <label>Stát</label>
             <input
               type="text"
               required
               value={stateName}
               onChange={(event) => setStateName(event.target.value)}
-              placeholder="Ceska republika"
+              placeholder="Česká republika"
             />
           </div>
 
@@ -286,7 +286,7 @@ export default function CreateAccountPage() {
               required
               value={street}
               onChange={(event) => setStreet(event.target.value)}
-              placeholder="Hlavni 123"
+              placeholder="Hlavní 123"
             />
           </div>
 
@@ -300,12 +300,12 @@ export default function CreateAccountPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
             <p className="password-hint">
-              Min. 6 znaku: velke + male pismeno, cislo, specialni znak (napr. _, !, @).
+              Min. 6 znaků: velké + malé písmeno, číslo, speciální znak (např. _, !, @).
             </p>
           </div>
 
           <div className="input-group">
-            <label>Potvrzeni hesla</label>
+            <label>Potvrzení hesla</label>
             <input
               type="password"
               required
@@ -320,8 +320,8 @@ export default function CreateAccountPage() {
         </form>
 
         <p className="switch-link">
-          Uz mate ucet?{" "}
-          <span onClick={() => (window.location.href = "/login")}>Zpet na prihlaseni</span>
+          Už máte účet?{" "}
+          <span onClick={() => (window.location.href = "/login")}>Zpět na přihlášení</span>
         </p>
 
         {error && <p className="error-text">{error}</p>}

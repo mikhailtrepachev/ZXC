@@ -77,7 +77,7 @@ export default function LoginPage() {
             <label>E-mail</label>
             <input
               type="email"
-              placeholder="uzivatel@email.cz"
+              placeholder="uživatel@email.cz"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}

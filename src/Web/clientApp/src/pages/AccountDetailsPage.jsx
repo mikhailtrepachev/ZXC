@@ -194,7 +194,7 @@ export default function AccountDetailsPage() {
     setIsLoading(true);
 
     if (!normalizedAccountNumber) {
-      setError("Neplatne cislo uctu.");
+      setError("Neplatné číslo účtu.");
       setAccount(null);
       setTransactions([]);
       setIsLoading(false);
@@ -216,7 +216,7 @@ export default function AccountDetailsPage() {
       ]);
 
       if (!profileResponse.ok) {
-        const message = await readErrorMessage(profileResponse, "Nepodarilo se nacist ucet.");
+        const message = await readErrorMessage(profileResponse, "Nepodařilo se načíst účet.");
         setError(message);
         setAccount(null);
         setTransactions([]);
@@ -231,7 +231,7 @@ export default function AccountDetailsPage() {
       );
 
       if (!selected) {
-        setError("Ucet nebyl nalezen.");
+        setError("Účet nebyl nalezen.");
         setAccount(null);
         setTransactions([]);
         return;
@@ -240,7 +240,7 @@ export default function AccountDetailsPage() {
       setAccount(selected);
 
       if (!transactionsResponse.ok) {
-        const message = await readErrorMessage(transactionsResponse, "Nepodarilo se nacist historii transakci.");
+        const message = await readErrorMessage(transactionsResponse, "Nepodařilo se načíst historii transakcí.");
         setError(message);
         setTransactions([]);
         return;
@@ -249,7 +249,7 @@ export default function AccountDetailsPage() {
       const transactionsPayload = await transactionsResponse.json().catch(() => []);
       setTransactions(Array.isArray(transactionsPayload) ? transactionsPayload : []);
     } catch {
-      setError("Nepodarilo se nacist detail uctu.");
+      setError("Nepodařilo se načíst detail účtu.");
       setAccount(null);
       setTransactions([]);
     } finally {
@@ -303,7 +303,7 @@ export default function AccountDetailsPage() {
     setExportMessage("");
 
     if (transactionRows.length === 0) {
-      setExportError("Pro tento ucet neni co exportovat.");
+      setExportError("Pro tento účet není co exportovat.");
       return;
     }
 
@@ -321,9 +321,9 @@ export default function AccountDetailsPage() {
       const pageHeight = doc.internal.pageSize.getHeight();
       const cols = [
         { key: "date", label: "Datum", width: 118 },
-        { key: "counterparty", label: "Protiucet", width: 142 },
+        { key: "counterparty", label: "Protiúčet", width: 142 },
         { key: "description", label: "Popis", width: 220 },
-        { key: "amount", label: "Castka", width: 80, align: "right" },
+        { key: "amount", label: "Částka", width: 80, align: "right" },
       ];
 
       let y = 42;
@@ -345,12 +345,12 @@ export default function AccountDetailsPage() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
-      doc.text("Vypis z uctu", marginX, y);
+      doc.text("Výpis z účtu", marginX, y);
       y += 20;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(`Cislo uctu: ${account?.accountNumber || normalizedAccountNumber || "--"}`, marginX, y);
+      doc.text(`Číslo účtu: ${account?.accountNumber || normalizedAccountNumber || "--"}`, marginX, y);
       y += 14;
       doc.text(`Vygenerovano: ${formatTimestamp(new Date())}`, marginX, y);
       y += 20;
@@ -403,9 +403,9 @@ export default function AccountDetailsPage() {
       const safeAccount = String(account?.accountNumber || normalizedAccountNumber || "ucet").replace(/[^\w-]/g, "");
       const dateStamp = new Date().toISOString().slice(0, 10);
       doc.save(`vypis-${safeAccount}-${dateStamp}.pdf`);
-      setExportMessage("PDF bylo vygenerovano.");
+      setExportMessage("PDF bylo vygenerováno.");
     } catch {
-      setExportError("Export do PDF se nepodaril.");
+      setExportError("Export do PDF se nepodařil.");
     } finally {
       setIsExportingPdf(false);
     }
@@ -416,7 +416,7 @@ export default function AccountDetailsPage() {
       <div className="page__container account-details-page__container">
         <div className="account-details-page__head">
           <div>
-            <h1 className="page__title">Detail uctu</h1>
+            <h1 className="page__title">Detail účtu</h1>
             <p className="page__subtitle">{account?.accountNumber || normalizedAccountNumber || "--"}</p>
           </div>
 
@@ -427,7 +427,7 @@ export default function AccountDetailsPage() {
               onClick={() => navigate(`/payments?from=${encodeURIComponent(normalizedAccountNumber)}`)}
               disabled={!account}
             >
-              Prevod
+              Převod
             </button>
             <button
               className="page__chip"
@@ -443,20 +443,20 @@ export default function AccountDetailsPage() {
           </div>
         </div>
 
-        {isLoading && <p className="account-details-page__state">Nacitam data uctu...</p>}
+        {isLoading && <p className="account-details-page__state">Načítám data účtu...</p>}
         {!isLoading && error && <p className="account-details-page__state account-details-page__state--error">{error}</p>}
 
         {!isLoading && !error && account && (
           <div className="page__grid">
             <section className="page__panel">
-              <h2 className="page__panelTitle">Prehled uctu</h2>
+              <h2 className="page__panelTitle">Přehled účtu</h2>
               <div className="account-details-page__metrics">
                 <p>
-                  Zustatek:
+                  Zůstatek:
                   <strong>{formatMoney(account.balance, account.currency)}</strong>
                 </p>
                 <p>
-                  Mena:
+                  Měna:
                   <strong>{currencyCodeFromName(account.currency)}</strong>
                 </p>
                 <p>
@@ -465,7 +465,7 @@ export default function AccountDetailsPage() {
                 </p>
                 <p>
                   Stav:
-                  <strong>{account.isFrozen ? "Zablokovany" : "Aktivni"}</strong>
+                  <strong>{account.isFrozen ? "Zablokovaný" : "Aktivní"}</strong>
                 </p>
               </div>
             </section>
@@ -495,10 +495,10 @@ export default function AccountDetailsPage() {
             </section>
 
             <section className="page__panel page__panel--full">
-              <h2 className="page__panelTitle">Historie transakci</h2>
+              <h2 className="page__panelTitle">Historie transakcí</h2>
 
               {transactionRows.length === 0 && (
-                <p className="account-details-page__state">Pro tento ucet zatim nejsou dostupne transakce.</p>
+                <p className="account-details-page__state">Pro tento účet zatím nejsou dostupné transakce.</p>
               )}
 
               {transactionRows.length > 0 && (
@@ -521,7 +521,7 @@ export default function AccountDetailsPage() {
         )}
 
         <button className="page__button" type="button" onClick={() => navigate("/accounts")}>
-          Zpet na ucty
+          Zpět na účty
         </button>
       </div>
     </div>

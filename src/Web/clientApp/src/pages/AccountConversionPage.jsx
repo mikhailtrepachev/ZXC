@@ -147,7 +147,7 @@ export default function AccountConversionPage() {
 
   const [toAccountNumber, setToAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
-  const [message, setMessage] = useState("Konverze mezi vlastnimi ucty");
+  const [message, setMessage] = useState("Konverze mezi vlastními účty");
 
   const [estimate, setEstimate] = useState(null);
   const [estimateError, setEstimateError] = useState("");
@@ -172,7 +172,7 @@ export default function AccountConversionPage() {
     setIsLoading(true);
 
     if (!normalizedFromAccountNumber) {
-      setLoadError("Neplatne cislo zdrojoveho uctu.");
+      setLoadError("Neplatné číslo zdrojového účtu.");
       setAccounts([]);
       setIsLoading(false);
       return;
@@ -186,7 +186,7 @@ export default function AccountConversionPage() {
       });
 
       if (!response.ok) {
-        const messageText = await readErrorMessage(response, "Nepodarilo se nacist ucty.");
+        const messageText = await readErrorMessage(response, "Nepodařilo se načíst účty.");
         setLoadError(messageText);
         setAccounts([]);
         return;
@@ -197,7 +197,7 @@ export default function AccountConversionPage() {
       const mapped = Array.isArray(list) ? list.map(mapAccount) : [];
       setAccounts(mapped);
     } catch {
-      setLoadError("Nepodarilo se nacist ucty.");
+      setLoadError("Nepodařilo se načíst účty.");
       setAccounts([]);
     } finally {
       setIsLoading(false);
@@ -240,7 +240,7 @@ export default function AccountConversionPage() {
         });
 
         if (!response.ok) {
-          const messageText = await readErrorMessage(response, "Nepodarilo se spocitat konverzi.");
+          const messageText = await readErrorMessage(response, "Nepodařilo se spočítat konverzi.");
           if (!isCancelled) {
             setEstimate(null);
             setEstimateError(messageText);
@@ -255,7 +255,7 @@ export default function AccountConversionPage() {
       } catch {
         if (!isCancelled) {
           setEstimate(null);
-          setEstimateError("Nepodarilo se spocitat konverzi.");
+          setEstimateError("Nepodařilo se spočítat konverzi.");
         }
       } finally {
         if (!isCancelled) {
@@ -276,24 +276,24 @@ export default function AccountConversionPage() {
     setSubmitSuccess("");
 
     if (!sourceAccount) {
-      setSubmitError("Zdrojovy ucet nebyl nalezen.");
+      setSubmitError("Zdrojový účet nebyl nalezen.");
       return;
     }
 
     const target = targetAccounts.find((item) => item.accountNumber === toAccountNumber) || null;
     if (!target) {
-      setSubmitError("Vyberte cilovy ucet.");
+      setSubmitError("Vyberte cílový účet.");
       return;
     }
 
     const numericAmount = Number(amount);
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setSubmitError("Zadejte kladnou castku.");
+      setSubmitError("Zadejte kladnou částku.");
       return;
     }
 
     if (numericAmount > sourceAccount.balance) {
-      setSubmitError("Nedostatek prostredku na zdrojovem uctu.");
+      setSubmitError("Nedostatek prostředků na zdrojovém účtu.");
       return;
     }
 
@@ -313,7 +313,7 @@ export default function AccountConversionPage() {
       });
 
       if (!response.ok) {
-        const messageText = await readErrorMessage(response, "Konverzi se nepodarilo provest.");
+        const messageText = await readErrorMessage(response, "Konverzi se nepodařilo provést.");
         setSubmitError(messageText);
         return;
       }
@@ -322,7 +322,7 @@ export default function AccountConversionPage() {
       setAmount("");
       await loadAccounts();
     } catch {
-      setSubmitError("Konverzi se nepodarilo provest.");
+      setSubmitError("Konverzi se nepodařilo provést.");
     } finally {
       setIsSubmitting(false);
     }
@@ -331,12 +331,12 @@ export default function AccountConversionPage() {
   return (
     <div className="page account-conversion-page">
       <div className="page__container account-conversion-page__container">
-        <h1 className="page__title">Konverze mezi ucty</h1>
+        <h1 className="page__title">Konverze mezi účty</h1>
         <p className="page__subtitle">
-          Prevod mezi vasimi ucty s orientacnim vypoctem castky, ktera prijde na cilovy ucet.
+          Převod mezi vašimi účty s orientačním výpočtem částky, která přijde na cílový účet.
         </p>
 
-        {isLoading && <p className="account-conversion-page__state">Nacitam ucty...</p>}
+        {isLoading && <p className="account-conversion-page__state">Načítám účty...</p>}
         {!isLoading && loadError && (
           <p className="account-conversion-page__state account-conversion-page__state--error">{loadError}</p>
         )}
@@ -345,22 +345,22 @@ export default function AccountConversionPage() {
           <form className="account-conversion-page__form" onSubmit={handleSubmit}>
             <div className="page__grid">
               <section className="page__panel">
-                <h2 className="page__panelTitle">Zdrojovy ucet</h2>
+                <h2 className="page__panelTitle">Zdrojový účet</h2>
                 <p className="account-conversion-page__value">{sourceAccount.accountNumber}</p>
                 <p className="account-conversion-page__muted">
-                  Zustatek: {formatMoney(sourceAccount.balance, sourceAccount.currency)}
+                  Zůstatek: {formatMoney(sourceAccount.balance, sourceAccount.currency)}
                 </p>
                 <p className="account-conversion-page__muted">
-                  Mena: {currencyCodeFromName(sourceAccount.currency)}
+                  Měna: {currencyCodeFromName(sourceAccount.currency)}
                 </p>
               </section>
 
               <section className="page__panel">
-                <h2 className="page__panelTitle">Cilovy ucet</h2>
+                <h2 className="page__panelTitle">Cílový účet</h2>
                 <label className="account-conversion-page__field">
-                  <span>Na jaky ucet</span>
+                  <span>Na jaký účet</span>
                   <select value={toAccountNumber} onChange={(event) => setToAccountNumber(event.target.value)}>
-                    {targetAccounts.length === 0 && <option value="">Bez dostupneho uctu</option>}
+                    {targetAccounts.length === 0 && <option value="">Bez dostupného účtu</option>}
                     {targetAccounts.map((item) => (
                       <option key={item.accountNumber} value={item.accountNumber}>
                         {item.accountNumber} ({currencyCodeFromName(item.currency)})
@@ -374,7 +374,7 @@ export default function AccountConversionPage() {
                 <h2 className="page__panelTitle">Parametry konverze</h2>
                 <div className="account-conversion-page__fieldsGrid">
                   <label className="account-conversion-page__field">
-                    <span>Castka k prevodu</span>
+                    <span>Částka k převodu</span>
                     <div className="account-conversion-page__amountWrap">
                       <input
                         type="number"
@@ -382,14 +382,14 @@ export default function AccountConversionPage() {
                         step="0.01"
                         value={amount}
                         onChange={(event) => setAmount(event.target.value)}
-                        placeholder="Napriklad 1000"
+                        placeholder="Například 1000"
                       />
                       <strong>{currencyCodeFromName(sourceAccount.currency)}</strong>
                     </div>
                   </label>
 
                   <label className="account-conversion-page__field">
-                    <span>Na cilovy ucet prijde</span>
+                    <span>Na cílový účet přijde</span>
                     <input
                       type="text"
                       readOnly
@@ -397,7 +397,7 @@ export default function AccountConversionPage() {
                         estimate
                           ? formatMoney(estimate.amountTo, estimate.toCurrency)
                           : isEstimateLoading
-                            ? "Pocitam..."
+                            ? "Počítám..."
                             : "--"
                       }
                     />
@@ -417,7 +417,7 @@ export default function AccountConversionPage() {
                 )}
 
                 <label className="account-conversion-page__field">
-                  <span>Zprava k prevodu (nepovinne)</span>
+                  <span>Zpráva k převodu (nepovinné)</span>
                   <input
                     type="text"
                     maxLength={140}
@@ -437,14 +437,14 @@ export default function AccountConversionPage() {
 
             <div className="account-conversion-page__actions">
               <button className="page__button" type="submit" disabled={isSubmitting || targetAccounts.length === 0}>
-                {isSubmitting ? "Provadim..." : "Provest konverzi"}
+                {isSubmitting ? "Provádím..." : "Provést konverzi"}
               </button>
               <button
                 className="page__chip"
                 type="button"
                 onClick={() => navigate(`/accounts/${encodeURIComponent(normalizedFromAccountNumber)}`)}
               >
-                Zpet na detail uctu
+                Zpět na detail účtu
               </button>
             </div>
           </form>
