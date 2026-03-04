@@ -83,7 +83,14 @@ function App() {
           }
         />
 
-        <Route path="/loans" element={<LoansPage />} />
+        <Route
+          path="/loans"
+          element={
+            <ProtectedRoute>
+              <LoansPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/payments"
