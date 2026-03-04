@@ -9,10 +9,9 @@ import {
 import "./header_style.css";
 
 const NAV = [
-  { label: "Účty", href: "/accounts" },
-  { label: "Karty", href: "/cards" },
-  { label: "Úvěry", href: "/loans" },
-  { label: "Platby", href: "/payments" },
+  { label: "Domu", href: "/accounts" },
+  { label: "Moje karty", href: "/cards" },
+  { label: "Spocitat uver", href: "/loans" },
 ];
 
 const LOGO_URL = "https://i.ytimg.com/vi/TiE9pWAwYOs/maxresdefault.jpg";
@@ -567,28 +566,6 @@ export default function Header() {
 
           <nav className="site-header__nav" aria-label="Hlavni menu">
             <ul className="site-header__navList">
-              <li className="site-header__navItem">
-                <details className="site-header__details">
-                  <summary className="site-header__navLink site-header__summary">
-                    Produkty <ChevronDown />
-                  </summary>
-                  <div className="site-header__dropdown">
-                    <Link className="site-header__dropdownLink" to="/cards">
-                      Karty
-                    </Link>
-                    <Link className="site-header__dropdownLink" to="/accounts">
-                      Účty
-                    </Link>
-                    <Link className="site-header__dropdownLink" to="/loans">
-                      Úvěry
-                    </Link>
-                    <Link className="site-header__dropdownLink" to="/payments">
-                      Platby
-                    </Link>
-                  </div>
-                </details>
-              </li>
-
               {NAV.map((item) => (
                 <li key={item.href} className="site-header__navItem">
                   <Link className="site-header__navLink" to={item.href}>
@@ -793,17 +770,14 @@ export default function Header() {
           <div className="mobile-menu__section">
             <div className="mobile-menu__label">Navigace</div>
             <div className="mobile-menu__links">
-              <Link to="/cards" onClick={() => setMobileOpen(false)}>
-                Karty
-              </Link>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
-                Účty
+                Domu
+              </Link>
+              <Link to="/cards" onClick={() => setMobileOpen(false)}>
+                Moje karty
               </Link>
               <Link to="/loans" onClick={() => setMobileOpen(false)}>
-                Úvěry
-              </Link>
-              <Link to="/payments" onClick={() => setMobileOpen(false)}>
-                Platby
+                Spocitat uver
               </Link>
             </div>
           </div>
@@ -839,20 +813,6 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
-}
-
-function ChevronDown() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M6.5 9.5 12 15l5.5-5.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
