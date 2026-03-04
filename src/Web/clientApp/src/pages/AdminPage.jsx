@@ -3,7 +3,17 @@ import { getAccessToken } from "../auth/session";
 import "./PageLayout.css";
 import "./AdminPage.css";
 
-const USERS_ENDPOINT = "/api/Admins/users";
+const USERS_ENDPOINT_CANDIDATES = [
+  "/api/Admins/users",
+  "/api/Admins/clients",
+  "/api/Admins/all-users",
+  "/api/Admin/users",
+  "/api/Admin/clients",
+  "/api/admin/users",
+  "/api/admin/clients",
+  "/api/Clients/list",
+  "/api/Users/list",
+];
 const SOFT_DELETE_STORAGE_KEY = "zxc_admin_soft_deleted_accounts";
 
 function getAuthHeaders(includeJson = false) {
@@ -173,10 +183,57 @@ function formatDateTime(value) {
   }).format(date);
 }
 
+async function discoverUserListEndpoints() {
+  try {
+    const response = await fetch("/openapi/v1.json", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = await response.json().catch(() => null);
+    const paths = payload?.paths && typeof payload.paths === "object" ? payload.paths : null;
+    if (!paths) {
+      return [];
+    }
+
+    const discovered = [];
+    for (const [path, methods] of Object.entries(paths)) {
+      if (!path.startsWith("/api/")) {
+        continue;
+      }
+
+      const hasGet = methods && typeof methods === "object" && (methods.get || methods.GET);
+      if (!hasGet) {
+        continue;
+      }
+
+      const normalizedPath = path.toLowerCase();
+      const looksLikeUserList =
+        normalizedPath.includes("admin") &&
+        (normalizedPath.includes("users") || normalizedPath.includes("clients")) &&
+        !normalizedPath.includes("logs") &&
+        !normalizedPath.includes("manage/info");
+
+      if (looksLikeUserList) {
+        discovered.push(path);
+      }
+    }
+
+    return discovered;
+  } catch {
+    return [];
+  }
+}
+
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState("");
+  const [usersEndpoint, setUsersEndpoint] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
 
   const [manualUserId, setManualUserId] = useState("");
@@ -216,47 +273,69 @@ export default function AdminPage() {
   const loadUsers = async () => {
     setUsersLoading(true);
     setUsersError("");
+    setUsersEndpoint("");
 
     try {
-      const response = await fetch(USERS_ENDPOINT, {
-        method: "GET",
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
+      const discovered = await discoverUserListEndpoints();
+      const endpoints = Array.from(new Set([...USERS_ENDPOINT_CANDIDATES, ...discovered]));
 
-      if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se nacist seznam uzivatelu.");
-        setUsers([]);
-        setSelectedUserId("");
-        setUsersError(message);
+      for (const endpoint of endpoints) {
+        const response = await fetch(endpoint, {
+          method: "GET",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 405) {
+            continue;
+          }
+
+          if (response.status === 401 || response.status === 403) {
+            setUsers([]);
+            setSelectedUserId("");
+            setUsersError("Nemate opravneni ke cteni seznamu uzivatelu (Administrator).");
+            return;
+          }
+
+          const message = await readErrorMessage(response, "Nepodarilo se nacist seznam uzivatelu.");
+          setUsers([]);
+          setSelectedUserId("");
+          setUsersError(`${message} (HTTP ${response.status})`);
+          return;
+        }
+
+        const payload = await response.json().catch(() => []);
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.Items)
+              ? payload.Items
+              : [];
+
+        const mappedUsers = list.map(mapUser).filter((user) => user.id);
+        setUsers(mappedUsers);
+        setUsersEndpoint(endpoint);
+
+        if (mappedUsers.length > 0) {
+          setSelectedUserId(mappedUsers[0].id);
+          setManualUserId(mappedUsers[0].userId || "");
+        } else {
+          setSelectedUserId("");
+        }
         return;
       }
-
-      const payload = await response.json().catch(() => []);
-      const list = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload?.Items)
-            ? payload.Items
-            : [];
-
-      const mappedUsers = list.map(mapUser).filter((user) => user.id);
-      setUsers(mappedUsers);
-
-      if (mappedUsers.length > 0) {
-        setSelectedUserId(mappedUsers[0].id);
-        setManualUserId(mappedUsers[0].userId || "");
-      } else {
-        setSelectedUserId("");
-      }
     } catch {
-      setUsers([]);
-      setSelectedUserId("");
-      setUsersError("Nepodarilo se nacist seznam uzivatelu.");
+      // fallback message set below
     } finally {
       setUsersLoading(false);
     }
+
+    setUsers([]);
+    setSelectedUserId("");
+    setUsersError("Backend nyni neexponuje GET endpoint pro seznam uzivatelu.");
+    return;
   };
 
   useEffect(() => {
@@ -411,7 +490,7 @@ export default function AdminPage() {
         <div className="page__grid admin-page__grid">
           <section className="page__panel">
             <h2 className="page__panelTitle">Seznam uzivatelu</h2>
-            <p className="admin-page__hint">Zdroj: {USERS_ENDPOINT}</p>
+            <p className="admin-page__hint">Zdroj: {usersEndpoint || "nenalezeno"}</p>
 
             {usersLoading && <p className="admin-page__state">Nacitam uzivatele...</p>}
             {!usersLoading && usersError && <p className="admin-page__state admin-page__state--error">{usersError}</p>}
