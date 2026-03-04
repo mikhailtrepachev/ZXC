@@ -77,17 +77,38 @@ public class ApplicationDbContextInitialiser
             }
         }
 
-        // 2. Создание Администратора
         var adminEmail = "administrator@localhost";
         if (await _userManager.FindByEmailAsync(adminEmail) == null)
         {
-            var admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail };
+            // А. Создаем логин (Identity)
+            var admin = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+            };
+
             await _userManager.CreateAsync(admin, "Administrator1!");
             await _userManager.AddToRoleAsync(admin, Roles.Administrator);
+
+            // Б. --- ОБЯЗАТЕЛЬНО: Создаем профиль Клиента ---
+            var adminClient = new Client
+            {
+                UserId = admin.Id, // Связываем с Identity
+                FirstName = "Admin",
+                LastName = "System",
+                State = "Global",
+                Street = "Server Room 1",
+                PhoneNumber = "+0000000000",
+                DailyTransferLimit = 10000000, // Админу можно много
+                InternetPaymentLimit = 10000000
+            };
+
+            await _context.Clients.AddAsync(adminClient);
+            await _context.SaveChangesAsync();
         }
 
-        // --- SENDER (Отправитель) ---
-        var senderEmail = "sender@bank.com";
+            // --- SENDER (Отправитель) ---
+            var senderEmail = "sender@bank.com";
         if (await _userManager.FindByEmailAsync(senderEmail) == null)
         {
             var sender = new ApplicationUser { UserName = senderEmail, Email = senderEmail };
@@ -100,8 +121,8 @@ public class ApplicationDbContextInitialiser
                 UserId = sender.Id,
                 DailyTransferLimit = 50000,
                 InternetPaymentLimit = 10000,
-                FirstName = "Adrei",
-                LastName = "Dwwwww",
+                FirstName = "Silvestr",
+                LastName = "Andreevich",
                 State = "Czech",
                 Street = "Na honech I 3904",
                 PhoneNumber = "+79161231247",
@@ -221,60 +242,5 @@ public class ApplicationDbContextInitialiser
             _context.Clients.Add(receiverClient);
             await _context.SaveChangesAsync();
         }
-    }
-
-    
-    private string GenerateAccountNumber()
-    {
-        Random random = new Random();
-        string part1 = random.Next(100000, 999999).ToString();
-        string part2 = random.Next(100000, 999999).ToString();
-        
-        return $"40817810{part1}{part2}"; // Итого 20 цифр
-    }
-
-    private (Domain.Entities.Account, Domain.Entities.Account, Domain.Entities.Account, Domain.Entities.Account) CreateAccounts(string userId)
-    {
-        Domain.Entities.Account euroAccount = new Domain.Entities.Account
-        {
-            OwnerId = userId,
-            AccountNumber = GenerateAccountNumber(), // Генерируем красивый номер
-            Balance = 10000, // Стартовый баланс
-            IsFrozen = false,
-            Type = AccountType.Debet,
-            Currency = Currency.Euro
-        };
-
-        Domain.Entities.Account dollarAccount = new Domain.Entities.Account
-        {
-            OwnerId = userId,
-            AccountNumber = GenerateAccountNumber(), // Генерируем красивый номер
-            Balance = 4653, // Стартовый баланс
-            IsFrozen = false,
-            Type = AccountType.Debet,
-            Currency = Currency.Dollar
-        };
-        
-        Domain.Entities.Account korunaAccount = new Domain.Entities.Account
-        {
-            OwnerId = userId,
-            AccountNumber = GenerateAccountNumber(), // Генерируем красивый номер
-            Balance = 7653, // Стартовый баланс
-            IsFrozen = false,
-            Type = AccountType.Debet,
-            Currency = Currency.Koruna
-        };
-        
-        Domain.Entities.Account investmentAccount = new Domain.Entities.Account
-        {
-            OwnerId = userId,
-            AccountNumber = GenerateAccountNumber(), // Генерируем красивый номер
-            Balance = 34432, // Стартовый баланс
-            IsFrozen = false,
-            Type = AccountType.Investment,
-            Currency = Currency.Koruna
-        };
-
-        return (euroAccount, dollarAccount, korunaAccount, investmentAccount);
     }
 }
