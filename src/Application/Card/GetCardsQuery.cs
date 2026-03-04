@@ -33,7 +33,6 @@ public class GetCardsQueryHandler : IRequestHandler<GetCardsQuery, List<CardDto>
         return account.Cards.Select(c => new CardDto
         {
             Id = c.Id,
-            // Показываем только хвост
             MaskedNumber = c.CardNumber,
             HolderName = c.CardHolderName,
             ExpiryDate = c.ExpiryDate,

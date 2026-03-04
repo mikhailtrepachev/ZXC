@@ -38,7 +38,6 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
         var userId = _currentUser.Id;
         if (userId == null) throw new UnauthorizedAccessException();
 
-        // 1. --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
         // Ищем счет, который принадлежит текущему юзеру И имеет указанный номер
         var account = await _context.Accounts
             .FirstOrDefaultAsync(a => a.OwnerId == userId && a.AccountNumber == request.AccountNumber, cancellationToken);
@@ -58,14 +57,21 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
             throw new Exception("Pro tento účet byl dosažen limit karet (maximálně 3).");
         }
 
-        // 3. Получаем имя для карты (Embossing name)
-        var userName = await _identityService.GetUserNameAsync(userId);
+        var client = await _context.Clients
+            .FirstOrDefaultAsync(a => a.UserId == userId);
+
+        if (client is null )
+        {
+            throw new Exception("Nebyl nalezen klient");
+        }
+
+        var fullName = $"{client.LastName} {client.FirstName}";
 
         // 4. Создаем карту
         var card = new Card
         {
             AccountId = account.Id, // Привязываем к найденному ID
-            CardHolderName = (userName ?? "CLIENT").ToUpper(),
+            CardHolderName = (fullName ?? "CLIENT").ToUpper(),
             CardNumber = GenerateCardNumber(),
             Cvv = new Random().Next(100, 999).ToString(),
             ExpiryDate = DateTime.Now.AddYears(4).ToString("MM/yy"),
