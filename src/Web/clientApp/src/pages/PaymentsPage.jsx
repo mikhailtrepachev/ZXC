@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccessToken } from "../auth/session";
 import "./PageLayout.css";
@@ -60,35 +60,9 @@ function formatMoney(value, currencyName = "CZK") {
   }).format(amount);
 }
 
-function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "--";
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function transactionIsIncome(type) {
-  if (typeof type === "string") {
-    return type.toLowerCase() === "income";
-  }
-
-  return Number(type) === 0;
-}
-
 function mapAccountForTransfer(rawItem) {
-  const accountNumber = String(
-    pick(rawItem, "accountNumber", "AccountNumber") || "",
-  ).trim();
+  const accountNumber = String(pick(rawItem, "accountNumber", "AccountNumber") || "").trim();
   const currency = String(pick(rawItem, "currency", "Currency") || "CZK");
-  const type = String(pick(rawItem, "type", "Type") || "");
   const isFrozen = Boolean(pick(rawItem, "isFrozen", "IsFrozen"));
   const balance = Number(pick(rawItem, "balance", "Balance"));
 
@@ -96,7 +70,6 @@ function mapAccountForTransfer(rawItem) {
     id: String(pick(rawItem, "id", "Id") || accountNumber),
     accountNumber,
     currency,
-    type,
     isFrozen,
     balance: Number.isFinite(balance) ? balance : 0,
   };
@@ -167,21 +140,27 @@ async function readErrorMessage(response, fallbackMessage) {
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
+  const accountPickerRef = useRef(null);
 
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
 
-  const [history, setHistory] = useState([]);
-  const [historyError, setHistoryError] = useState("");
-  const [historyLoading, setHistoryLoading] = useState(true);
-
   const [fromAccountNumber, setFromAccountNumber] = useState("");
   const [toAccountNumber, setToAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [transferMessage, setTransferMessage] = useState("");
+
+  const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isRecipientLoading, setIsRecipientLoading] = useState(false);
+  const [recipientPreview, setRecipientPreview] = useState(null);
+  const [pendingTransfer, setPendingTransfer] = useState(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   const accounts = useMemo(() => {
     const rawAccounts = extractAccountList(profile);
@@ -189,38 +168,22 @@ export default function PaymentsPage() {
       return [];
     }
 
-    return rawAccounts
-      .map(mapAccountForTransfer)
-      .filter((account) => Boolean(account.accountNumber));
+    return rawAccounts.map(mapAccountForTransfer).filter((account) => Boolean(account.accountNumber));
   }, [profile]);
 
   const activeAccounts = useMemo(() => {
     return accounts.filter((account) => !account.isFrozen);
   }, [accounts]);
 
-  const dailyLimit =
-    Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
-  const internetLimit =
-    Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
+  const selectedFromAccount = useMemo(() => {
+    return activeAccounts.find((account) => account.accountNumber === fromAccountNumber) || null;
+  }, [activeAccounts, fromAccountNumber]);
 
-  const historyRows = useMemo(() => {
-    return history.slice(0, 20).map((item) => {
-      const incoming = transactionIsIncome(item.type);
-      const numericAmount = Number(item.amount);
-      const absolute = Number.isFinite(numericAmount)
-        ? Math.abs(numericAmount)
-        : 0;
+  const selectedCurrencyName = selectedFromAccount?.currency || "CZK";
+  const selectedCurrencyCode = currencyCodeFromName(selectedCurrencyName);
 
-      return {
-        id: item.id,
-        recipient:
-          item.description?.trim() || item.counterpartyAccount || "Prevod",
-        date: formatDate(item.date),
-        amount: `${incoming ? "+" : "-"}${formatMoney(absolute)}`,
-        incoming,
-      };
-    });
-  }, [history]);
+  const dailyLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
+  const internetLimit = Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
 
   const loadProfile = async () => {
     setProfileError("");
@@ -234,10 +197,7 @@ export default function PaymentsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(
-          response,
-          "Nepodařilo se načíst profil.",
-        );
+        const message = await readErrorMessage(response, "Nepodarilo se nacist profil.");
         setProfileError(message);
         setProfile(null);
         return;
@@ -246,47 +206,28 @@ export default function PaymentsPage() {
       const payload = await response.json().catch(() => null);
       setProfile(payload);
     } catch {
-      setProfileError("Nepodařilo se načíst profil.");
+      setProfileError("Nepodarilo se nacist profil.");
       setProfile(null);
     } finally {
       setProfileLoading(false);
     }
   };
 
-  const loadHistory = async () => {
-    setHistoryError("");
-    setHistoryLoading(true);
-
-    try {
-      const response = await fetch("/api/Transaction/history", {
-        method: "GET",
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const message = await readErrorMessage(
-          response,
-          "Nepodařilo se načíst historii plateb.",
-        );
-        setHistoryError(message);
-        setHistory([]);
-        return;
-      }
-
-      const payload = await response.json().catch(() => []);
-      setHistory(Array.isArray(payload) ? payload : []);
-    } catch {
-      setHistoryError("Nepodařilo se načíst historii plateb.");
-      setHistory([]);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
   useEffect(() => {
     loadProfile();
-    loadHistory();
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!accountPickerRef.current?.contains(event.target)) {
+        setIsAccountPickerOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -295,99 +236,169 @@ export default function PaymentsPage() {
       return;
     }
 
-    if (
-      !activeAccounts.some(
-        (account) => account.accountNumber === fromAccountNumber,
-      )
-    ) {
+    if (!activeAccounts.some((account) => account.accountNumber === fromAccountNumber)) {
       setFromAccountNumber(activeAccounts[0].accountNumber);
     }
   }, [activeAccounts, fromAccountNumber]);
 
   useEffect(() => {
-    if (!fromAccountNumber) {
+    if (!fromAccountNumber || !toAccountNumber) {
       return;
     }
 
-    if (toAccountNumber !== fromAccountNumber) {
+    if (fromAccountNumber !== toAccountNumber) {
       return;
     }
 
     const fallbackReceiver =
-      activeAccounts.find(
-        (account) => account.accountNumber !== fromAccountNumber,
-      )?.accountNumber || "";
+      activeAccounts.find((account) => account.accountNumber !== fromAccountNumber)?.accountNumber || "";
     setToAccountNumber(fallbackReceiver);
   }, [fromAccountNumber, toAccountNumber, activeAccounts]);
-
-  useEffect(() => {
-    if (toAccountNumber || !fromAccountNumber) {
-      return;
-    }
-
-    const initialReceiver =
-      activeAccounts.find(
-        (account) => account.accountNumber !== fromAccountNumber,
-      )?.accountNumber || "";
-    if (initialReceiver) {
-      setToAccountNumber(initialReceiver);
-    }
-  }, [toAccountNumber, fromAccountNumber, activeAccounts]);
 
   const setTemplate = (value) => {
     setAmount(String(value));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const validateTransferDraft = () => {
     setSubmitError("");
     setSubmitSuccess("");
 
     const normalizedFromAccount = fromAccountNumber.trim();
     const normalizedToAccount = toAccountNumber.trim();
     const numericAmount = Number(amount);
+    const normalizedMessage = transferMessage.trim();
+
     const senderAccount = activeAccounts.find(
       (account) => account.accountNumber === normalizedFromAccount,
     );
 
     if (!/^\d{10,30}$/.test(normalizedFromAccount)) {
-      setSubmitError("Vyberte platný účet odesílatele.");
-      return;
+      setSubmitError("Vyberte platny ucet odesilatele.");
+      return null;
     }
 
     if (!senderAccount) {
-      setSubmitError("Vybraný účet odesílatele není dostupný.");
-      return;
+      setSubmitError("Vybrany ucet odesilatele neni dostupny.");
+      return null;
     }
 
     if (!/^\d{10,30}$/.test(normalizedToAccount)) {
-      setSubmitError("Zadejte platné číslo účtu příjemce.");
-      return;
+      setSubmitError("Zadejte platne cislo uctu prijemce.");
+      return null;
     }
 
     if (normalizedFromAccount === normalizedToAccount) {
-      setSubmitError("Nelze provést převod na stejný účet.");
-      return;
+      setSubmitError("Nelze provest prevod na stejny ucet.");
+      return null;
     }
 
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setSubmitError("Částka musí být kladné číslo.");
-      return;
+      setSubmitError("Castka musi byt kladne cislo.");
+      return null;
     }
 
     if (numericAmount > senderAccount.balance) {
-      setSubmitError("Nedostatek prostředků na vybraném účtu.");
-      return;
+      setSubmitError("Nedostatek prostredku na vybranem uctu.");
+      return null;
     }
 
     if (dailyLimit > 0 && numericAmount > dailyLimit) {
-      setSubmitError(
-        `Částka přesahuje denní limit ${formatMoney(dailyLimit)}.`,
-      );
+      setSubmitError(`Castka presahuje denni limit ${formatMoney(dailyLimit, selectedCurrencyName)}.`);
+      return null;
+    }
+
+    if (normalizedMessage.length > 140) {
+      setSubmitError("Zprava muze mit maximalne 140 znaku.");
+      return null;
+    }
+
+    return {
+      fromAccountNumber: normalizedFromAccount,
+      toAccountNumber: normalizedToAccount,
+      amount: numericAmount,
+      message: normalizedMessage,
+      senderCurrency: senderAccount.currency,
+    };
+  };
+
+  const loadRecipientPreview = async (accountNumber) => {
+    try {
+      const response = await fetch(`/api/Transaction/recipient/${encodeURIComponent(accountNumber)}`, {
+        method: "GET",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        if (payload && typeof payload === "object") {
+          return payload;
+        }
+      }
+
+      if (response.status === 404) {
+        return {
+          holderFirstName: "",
+          holderLastName: "",
+          holderFullName: "Drzitel uctu nebyl nalezen",
+          accountNumber,
+        };
+      }
+
+      const message = await readErrorMessage(response, "Nepodarilo se overit prijemce.");
+      setConfirmError(message);
+    } catch {
+      setConfirmError("Nepodarilo se overit prijemce.");
+    }
+
+    return {
+      holderFirstName: "",
+      holderLastName: "",
+      holderFullName: "Drzitel uctu nebyl nalezen",
+      accountNumber,
+    };
+  };
+
+  const handleOpenConfirm = async (event) => {
+    event.preventDefault();
+
+    const draft = validateTransferDraft();
+    if (!draft) {
       return;
     }
 
+    setPendingTransfer(draft);
+    setRecipientPreview(null);
+    setConfirmError("");
+    setIsRecipientLoading(true);
+    setIsConfirmModalOpen(true);
+
+    const preview = await loadRecipientPreview(draft.toAccountNumber);
+    setRecipientPreview(preview);
+    setIsRecipientLoading(false);
+  };
+
+  const closeConfirmModal = () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsConfirmModalOpen(false);
+    setConfirmError("");
+  };
+
+  const handleConfirmTransfer = async () => {
+    if (!pendingTransfer) {
+      return;
+    }
+
+    setConfirmError("");
+    setSubmitError("");
+    setSubmitSuccess("");
     setIsSubmitting(true);
+
+    const suggestedReceiver =
+      activeAccounts.find((account) => account.accountNumber !== pendingTransfer.fromAccountNumber)?.accountNumber || "";
 
     try {
       const response = await fetch("/api/Transaction/transfer", {
@@ -395,31 +406,30 @@ export default function PaymentsPage() {
         credentials: "include",
         headers: getAuthHeaders(true),
         body: JSON.stringify({
-          fromAccountNumber: normalizedFromAccount,
-          toAccountNumber: normalizedToAccount,
-          amount: numericAmount,
+          fromAccountNumber: pendingTransfer.fromAccountNumber,
+          toAccountNumber: pendingTransfer.toAccountNumber,
+          amount: pendingTransfer.amount,
+          message: pendingTransfer.message,
         }),
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(
-          response,
-          "Převod se nepodařil.",
-        );
-        setSubmitError(message);
+        const message = await readErrorMessage(response, "Prevod se nepodaril.");
+        setConfirmError(message);
         return;
       }
 
-      setSubmitSuccess("Převod byl úspěšně odeslán.");
-      const suggestedReceiver =
-        activeAccounts.find(
-          (account) => account.accountNumber !== normalizedFromAccount,
-        )?.accountNumber || "";
+      setSubmitSuccess("Prevod byl uspesne odeslan.");
       setToAccountNumber(suggestedReceiver);
       setAmount("");
-      await Promise.all([loadHistory(), loadProfile()]);
+      setTransferMessage("");
+      setIsConfirmModalOpen(false);
+      setPendingTransfer(null);
+      setRecipientPreview(null);
+
+      await loadProfile();
     } catch {
-      setSubmitError("Převod se nepodařil.");
+      setConfirmError("Prevod se nepodaril.");
     } finally {
       setIsSubmitting(false);
     }
@@ -429,182 +439,233 @@ export default function PaymentsPage() {
     <div className="page payments-page">
       <div className="page__container">
         <h1 className="page__title">Platby</h1>
-        <p className="page__subtitle">
-          Převod peněz a historie transakcí synchronizovány s backendem.
-        </p>
+        <p className="page__subtitle">Rychly prevod penez s kontrolou udaju pred odeslanim.</p>
 
         <div className="page__grid">
-          <section className="page__panel">
-            <h2 className="page__panelTitle">Nový převod</h2>
-            <form className="payments-page__form" onSubmit={handleSubmit}>
-              <label>
-                Z účtu
-                <select
-                  value={fromAccountNumber}
-                  onChange={(event) => setFromAccountNumber(event.target.value)}
-                  disabled={activeAccounts.length === 0}
-                >
-                  {activeAccounts.length === 0 && (
-                    <option value="">Bez dostupného účtu</option>
-                  )}
-                  {activeAccounts.map((account) => (
-                    <option key={account.id} value={account.accountNumber}>
-                      {account.accountNumber} (
-                      {formatMoney(account.balance, account.currency)} -{" "}
-                      {account.currency})
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <section className="page__panel page__panel--full">
+            <h2 className="page__panelTitle">Novy prevod</h2>
 
-              <label>
-                Číslo účtu příjemce
+            <form className="payments-page__transferForm" onSubmit={handleOpenConfirm}>
+              <div className="payments-page__field">
+                <p className="payments-page__label">Z uctu</p>
+
+                <div className="payments-page__accountPicker" ref={accountPickerRef}>
+                  <div className="payments-page__accountBar">
+                    <span className="payments-page__accountNumber">
+                      {selectedFromAccount?.accountNumber || "Bez dostupneho uctu"}
+                    </span>
+
+                    <button
+                      className="payments-page__balanceButton"
+                      type="button"
+                      onClick={() => setIsAccountPickerOpen((value) => !value)}
+                      disabled={activeAccounts.length === 0}
+                    >
+                      <span>{formatMoney(selectedFromAccount?.balance ?? 0, selectedFromAccount?.currency || "CZK")}</span>
+                      <span className="payments-page__currencyBadge">{selectedCurrencyCode}</span>
+                      <span className="payments-page__balanceChevron">{isAccountPickerOpen ? "^" : "v"}</span>
+                    </button>
+                  </div>
+
+                  {isAccountPickerOpen && (
+                    <div className="payments-page__accountMenu">
+                      {activeAccounts.map((account) => (
+                        <button
+                          key={account.id}
+                          type="button"
+                          className={`payments-page__accountOption ${
+                            account.accountNumber === fromAccountNumber ? "is-selected" : ""
+                          }`}
+                          onClick={() => {
+                            setFromAccountNumber(account.accountNumber);
+                            setIsAccountPickerOpen(false);
+                          }}
+                        >
+                          <span>{account.accountNumber}</span>
+                          <span>
+                            {formatMoney(account.balance, account.currency)}
+                            <strong>{currencyCodeFromName(account.currency)}</strong>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="payments-page__field">
+                <label className="payments-page__label" htmlFor="payments-to-account">
+                  Na ucet
+                </label>
                 <input
+                  id="payments-to-account"
                   type="text"
                   value={toAccountNumber}
-                  onChange={(event) =>
-                    setToAccountNumber(event.target.value.replace(/[^\d]/g, ""))
-                  }
+                  onChange={(event) => setToAccountNumber(event.target.value.replace(/[^\d]/g, ""))}
                   placeholder="Napriklad 40817123456789012345"
-                  list="payments-page-my-accounts"
+                  inputMode="numeric"
                 />
-              </label>
-              <datalist id="payments-page-my-accounts">
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.accountNumber} />
-                ))}
-              </datalist>
+              </div>
 
-              <label>
-                Částka (Kč)
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  placeholder="1000"
+              <div className="payments-page__field">
+                <label className="payments-page__label" htmlFor="payments-amount">
+                  Zadejte castku
+                </label>
+                <div className="payments-page__amountWrap">
+                  <input
+                    id="payments-amount"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                    placeholder="1000"
+                  />
+                  <span className="payments-page__amountCurrency">{selectedCurrencyCode}</span>
+                </div>
+              </div>
+
+              <div className="payments-page__field">
+                <label className="payments-page__label" htmlFor="payments-message">
+                  Zprava pro prijemce (nepovinne)
+                </label>
+                <textarea
+                  id="payments-message"
+                  rows={3}
+                  maxLength={140}
+                  value={transferMessage}
+                  onChange={(event) => setTransferMessage(event.target.value)}
+                  placeholder="Napiste kratkou zpravu k prevodu"
                 />
-              </label>
+                <p className="payments-page__counter">{transferMessage.length}/140</p>
+              </div>
 
               <button
-                className="page__button payments-page__submit"
+                className="page__button payments-page__continue"
                 type="submit"
-                disabled={isSubmitting || activeAccounts.length === 0}
+                disabled={activeAccounts.length === 0 || isSubmitting}
               >
-                {isSubmitting ? "Odesilam..." : "Odeslat platbu"}
+                Pokracovat
               </button>
 
-              {submitError && (
-                <p className="payments-page__msg payments-page__msg--error">
-                  {submitError}
-                </p>
-              )}
-              {submitSuccess && (
-                <p className="payments-page__msg payments-page__msg--ok">
-                  {submitSuccess}
-                </p>
-              )}
+              {submitError && <p className="payments-page__msg payments-page__msg--error">{submitError}</p>}
+              {submitSuccess && <p className="payments-page__msg payments-page__msg--ok">{submitSuccess}</p>}
             </form>
           </section>
 
           <section className="page__panel">
-            <h2 className="page__panelTitle">Limity a šablony</h2>
+            <h2 className="page__panelTitle">Limity a sablony</h2>
 
-            {profileLoading && (
-              <p className="payments-page__hint">Načítám limity...</p>
-            )}
+            {profileLoading && <p className="payments-page__hint">Nacitam limity...</p>}
             {!profileLoading && profileError && (
-              <p className="payments-page__msg payments-page__msg--error">
-                {profileError}
-              </p>
+              <p className="payments-page__msg payments-page__msg--error">{profileError}</p>
             )}
             {!profileLoading && !profileError && (
               <div className="payments-page__limits">
                 <p>
-                  Denní limit převodu:{" "}
-                  <strong>{formatMoney(dailyLimit)}</strong>
+                  Denni limit prevodu: <strong>{formatMoney(dailyLimit, selectedCurrencyName)}</strong>
                 </p>
                 <p>
-                  Limit internetových plateb:{" "}
-                  <strong>{formatMoney(internetLimit)}</strong>
+                  Limit internetovych plateb: <strong>{formatMoney(internetLimit, selectedCurrencyName)}</strong>
                 </p>
               </div>
             )}
 
             <div className="page__actions">
-              <button
-                className="page__chip"
-                type="button"
-                onClick={() => setTemplate(500)}
-              >
-                Šablona 500 Kc
+              <button className="page__chip" type="button" onClick={() => setTemplate(500)}>
+                Sablona {formatMoney(500, selectedCurrencyName)}
               </button>
-              <button
-                className="page__chip"
-                type="button"
-                onClick={() => setTemplate(1000)}
-              >
-                Šablona 1000 Kc
+              <button className="page__chip" type="button" onClick={() => setTemplate(1000)}>
+                Sablona {formatMoney(1000, selectedCurrencyName)}
               </button>
-              <button
-                className="page__chip"
-                type="button"
-                onClick={() => setTemplate(5000)}
-              >
-                Šablona 5000 Kc
+              <button className="page__chip" type="button" onClick={() => setTemplate(5000)}>
+                Sablona {formatMoney(5000, selectedCurrencyName)}
               </button>
             </div>
 
             <div className="payments-page__accounts">
-              <p>Moje účty:</p>
-              {accounts.length === 0 && <span>Zatím bez dostupných účtů.</span>}
+              <p>Moje ucty:</p>
+              {accounts.length === 0 && <span>Zatim bez dostupnych uctu.</span>}
               {accounts.map((account) => (
                 <span key={account.id}>
-                  {account.accountNumber} ({account.currency}) -{" "}
-                  {formatMoney(account.balance, account.currency)}
+                  {account.accountNumber} ({currencyCodeFromName(account.currency)}) - {formatMoney(account.balance, account.currency)}
                 </span>
               ))}
             </div>
           </section>
 
-          <section className="page__panel page__panel--full">
-            <h2 className="page__panelTitle">Historie plateb</h2>
-
-            {historyLoading && (
-              <p className="payments-page__hint">Načítám historii...</p>
-            )}
-            {!historyLoading && historyError && (
-              <p className="payments-page__msg payments-page__msg--error">
-                {historyError}
-              </p>
-            )}
-            {!historyLoading && !historyError && historyRows.length === 0 && (
-              <p className="payments-page__hint">Historie je zatím prázdná.</p>
-            )}
-
-            {!historyLoading && !historyError && historyRows.length > 0 && (
-              <div className="page__table">
-                {historyRows.map((payment) => (
-                  <div className="page__row" key={payment.id}>
-                    <span>{payment.recipient}</span>
-                    <span>{payment.date}</span>
-                    <span
-                      className={`page__amount ${payment.incoming ? "page__amount--in" : ""}`}
-                    >
-                      {payment.amount}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
         </div>
 
-        <button className="page__button" onClick={() => navigate("/accounts")}>
-          Zpět na účty
-        </button>
+        <button className="page__button" onClick={() => navigate("/accounts")}>Zpet na ucty</button>
       </div>
+
+      {isConfirmModalOpen && (
+        <div className="payments-page__modalBackdrop" role="presentation" onClick={closeConfirmModal}>
+          <div
+            className="payments-page__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payments-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="payments-confirm-title">Zkontrolujte prevod</h2>
+
+            <div className="payments-page__summary">
+              <div className="payments-page__summaryRow">
+                <span>Z uctu</span>
+                <strong>{pendingTransfer?.fromAccountNumber || "--"}</strong>
+              </div>
+
+              <div className="payments-page__summaryRow">
+                <span>Na ucet</span>
+                <strong>{pendingTransfer?.toAccountNumber || "--"}</strong>
+              </div>
+
+              <div className="payments-page__recipient">
+                {isRecipientLoading ? "Nacitam jmeno prijemce..." : recipientPreview?.holderFullName || "Drzitel uctu nebyl nalezen"}
+              </div>
+
+              <div className="payments-page__summaryRow">
+                <span>Castka</span>
+                <strong>{formatMoney(pendingTransfer?.amount || 0, pendingTransfer?.senderCurrency || "CZK")}</strong>
+              </div>
+
+              <div className="payments-page__summaryRow">
+                <span>Mena</span>
+                <strong>{currencyCodeFromName(pendingTransfer?.senderCurrency || "CZK")}</strong>
+              </div>
+
+              {pendingTransfer?.message && (
+                <div className="payments-page__summaryRow payments-page__summaryRow--message">
+                  <span>Zprava</span>
+                  <strong>{pendingTransfer.message}</strong>
+                </div>
+              )}
+            </div>
+
+            {confirmError && <p className="payments-page__msg payments-page__msg--error">{confirmError}</p>}
+
+            <div className="payments-page__modalActions">
+              <button
+                className="payments-page__modalButton payments-page__modalButton--ghost"
+                type="button"
+                onClick={closeConfirmModal}
+                disabled={isSubmitting}
+              >
+                Zpet
+              </button>
+              <button
+                className="payments-page__modalButton payments-page__modalButton--primary"
+                type="button"
+                onClick={handleConfirmTransfer}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Odesilam..." : "Odeslat"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

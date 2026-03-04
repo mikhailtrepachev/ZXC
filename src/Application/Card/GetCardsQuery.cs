@@ -34,7 +34,7 @@ public class GetCardsQueryHandler : IRequestHandler<GetCardsQuery, List<CardDto>
         {
             Id = c.Id,
             // Показываем только хвост
-            MaskedNumber = "**** **** **** " + c.CardNumber.Substring(c.CardNumber.Length - 4),
+            MaskedNumber = c.CardNumber,
             HolderName = c.CardHolderName,
             ExpiryDate = c.ExpiryDate,
             Cvv = c.Cvv,
