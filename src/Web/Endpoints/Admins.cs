@@ -1,5 +1,6 @@
 ﻿using ZxcBank.Application.Account;
 using ZxcBank.Application.Admin;
+using ZxcBank.Application.Admin.Queries.GetAllUsers;
 using ZxcBank.Application.UserSessions.Queries.GetUserLogsForAdmin;
 using ZxcBank.Application.UserSessions.Queries.GetUserSessions;
 
@@ -19,6 +20,9 @@ public class Admins : EndpointGroupBase
 
         // 3. Логи (оставляем как было)
         app.MapGet(GetUserLogs, "logs/{userId}")
+           .RequireAuthorization(policy => policy.RequireRole("Administrator"));
+        // Получение списка всех пользователей
+        app.MapGet(GetAllUsers, "users")
            .RequireAuthorization(policy => policy.RequireRole("Administrator"));
     }
 
@@ -45,5 +49,9 @@ public class Admins : EndpointGroupBase
     public async Task<List<UserSessionDto>> GetUserLogs(ISender sender, string userId)
     {
         return await sender.Send(new GetUserLogsForAdminQuery(userId));
+    }
+    public async Task<List<UserInfoDto>> GetAllUsers(ISender sender)
+    {
+        return await sender.Send(new GetAllUsersQuery());
     }
 }

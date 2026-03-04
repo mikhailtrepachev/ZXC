@@ -7,15 +7,15 @@ import "./UserSettingsPage.css";
 const SOURCES = [
   {
     id: "user",
-    title: "Profil uzivatele",
+    title: "Profil uživatele",
     endpoint: "/api/Users/manage/info",
-    fallbackError: "Nepodarilo se nacist profil uzivatele.",
+    fallbackError: "Nepodařilo se načíst profil uživatele.",
   },
   {
     id: "account",
     title: "Bankovni profil",
     endpoint: "/api/Accounts/info",
-    fallbackError: "Nepodarilo se nacist bankovni data.",
+    fallbackError: "Nepodařilo se načíst bankovní data.",
   },
 ];
 
@@ -236,7 +236,7 @@ export default function UserSettingsPage() {
     setSaveError("");
 
     if (!profileEmail) {
-      setSaveError("Nelze ulozit jmeno, protoze neni dostupny e-mail uzivatele.");
+      setSaveError("Nelze uložit jméno, protože není dostupný e-mail uživatele.");
       return;
     }
 
@@ -244,7 +244,7 @@ export default function UserSettingsPage() {
     const nextLastName = lastName.trim();
 
     if (!nextFirstName || !nextLastName) {
-      setSaveError("Vyplnte jmeno i prijmeni.");
+      setSaveError("Vyplňte jméno i příjmení.");
       return;
     }
 
@@ -255,11 +255,11 @@ export default function UserSettingsPage() {
     });
 
     if (!saved) {
-      setSaveError("Ulozeni se nezdarilo.");
+      setSaveError("Uložení se nezdařilo.");
       return;
     }
 
-    setSaveMessage("Jmeno pro zobrazeni bylo ulozeno.");
+    setSaveMessage("Jméno pro zobrazení bylo ulozeno.");
   };
 
   return (
@@ -267,38 +267,38 @@ export default function UserSettingsPage() {
       <div className="page__container user-settings-page__container">
         <div className="user-settings-page__head">
           <div>
-            <h1 className="page__title">Nastaveni profilu</h1>
+            <h1 className="page__title">Nastavení profilu</h1>
             <p className="page__subtitle">
-              Zobrazeni vsech dostupnych udaju a lokalni nastaveni jmena ve fronte.
+              Zobrazení všech dostupných údajů a lokální nastavení jména ve frontendu.
             </p>
           </div>
           <button type="button" className="page__chip" onClick={loadData} disabled={isLoading}>
-            {isLoading ? "Nacitam..." : "Obnovit data"}
+            {isLoading ? "Načítám..." : "Obnovit data"}
           </button>
         </div>
 
         <div className="page__grid user-settings-page__grid">
           <section className="page__panel page__panel--full">
-            <h2 className="page__panelTitle">Jmeno v aplikaci</h2>
+            <h2 className="page__panelTitle">Jméno v aplikaci</h2>
             <p className="user-settings-page__hint">
-              Toto nastaveni je lokalni a pouziva se pro zobrazeni v Headeru a na kartach.
+              Toto nastavení je lokální a používá se pro zobrazení v hlavičce a na kartách.
             </p>
             <p className="user-settings-page__email">{profileEmail || "E-mail nebyl nalezen."}</p>
 
             <div className="user-settings-page__nameForm">
               <label>
-                Jmeno
+                Jméno
                 <input type="text" value={firstName} onChange={(event) => setFirstName(event.target.value)} />
               </label>
               <label>
-                Prijmeni
+                Příjmení
                 <input type="text" value={lastName} onChange={(event) => setLastName(event.target.value)} />
               </label>
             </div>
 
             <div className="user-settings-page__actions">
               <button type="button" className="page__chip" onClick={handleSaveDisplayName}>
-                Ulozit jmeno
+                Uložit jméno
               </button>
             </div>
 
@@ -316,12 +316,12 @@ export default function UserSettingsPage() {
               {section.error && <p className="user-settings-page__state user-settings-page__state--error">{section.error}</p>}
 
               {!section.error && section.data === null && (
-                <p className="user-settings-page__state">Zdroj vratil prazdnou odpoved.</p>
+                <p className="user-settings-page__state">Zdroj vrátil prázdnou odpověď.</p>
               )}
 
               {!section.error && section.data !== null && (
                 <>
-                  <p className="user-settings-page__state">Pocet poli: {section.rows.length}</p>
+                  <p className="user-settings-page__state">Počet poli: {section.rows.length}</p>
                   <div className="user-settings-page__table">
                     {section.rows.map((row) => (
                       <div className="user-settings-page__row" key={`${section.id}-${row.path}`}>
@@ -332,7 +332,7 @@ export default function UserSettingsPage() {
                   </div>
 
                   <details className="user-settings-page__raw">
-                    <summary>Raw JSON</summary>
+                    <summary>Surový JSON</summary>
                     <pre>{JSON.stringify(section.data, null, 2)}</pre>
                   </details>
                 </>
@@ -342,7 +342,7 @@ export default function UserSettingsPage() {
         </div>
 
         <button className="page__button" type="button" onClick={() => navigate("/accounts")}>
-          Zpet na ucty
+          Zpět na účty
         </button>
       </div>
     </div>

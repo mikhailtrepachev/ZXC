@@ -1,17 +1,35 @@
-/* ===== ПАЛИТРА ИЗ РЕФЕРЕНСА =====
-#D83F87 — акцент (розовый)
-#2A1B3D — тёмный фон
-#44318D — фиолетовый
-#E98074 — мягкий акцент
-#A4B3B6 — светлый серо-голубой
+/* ===== COLOR PALETTE =====
+#D83F87 - accent
+#2A1B3D - dark background
+#44318D - secondary surface
+#E98074 - soft accent
+#A4B3B6 - muted text
 */
 
-/* ===== RESET ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 * {
   box-sizing: border-box;
 }
 
-/* ===== ФОН ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 .login-container {
   height: 100vh;
   display: flex;
@@ -22,7 +40,16 @@
   font-family: "Inter", sans-serif;
 }
 
-/* ===== КАРТОЧКА ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 .login-card {
   width: 420px;
   padding: 50px 45px;
@@ -42,7 +69,16 @@
   text-transform: uppercase;
 }
 
-/* ===== INPUT GROUP ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 .input-group {
   display: flex;
   flex-direction: column;
@@ -57,7 +93,16 @@
   letter-spacing: 1px;
 }
 
-/* ===== INPUT ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 .input-group input {
   padding: 14px 16px;
   border-radius: 10px;
@@ -74,7 +119,16 @@
   box-shadow: 0 0 0 3px rgba(216, 63, 135, 0.3);
 }
 
-/* ===== BUTTON ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 .login-card button {
   width: 100%;
   padding: 14px;
@@ -100,7 +154,16 @@
   transform: translateY(0);
 }
 
-/* ===== ERROR ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 .error-text {
   margin-top: 14px;
   font-size: 13px;
@@ -108,7 +171,16 @@
   text-align: center;
 }
 
-/* ===== АНИМАЦИЯ ===== */
+ param($m)
+  switch -Regex ($m.Value) {
+    'RESET' { '/* ===== RESET ===== */' ; break }
+    'INPUT GROUP' { '/* ===== INPUT GROUP ===== */' ; break }
+    'INPUT' { '/* ===== INPUT ===== */' ; break }
+    'BUTTON' { '/* ===== BUTTON ===== */' ; break }
+    'ERROR' { '/* ===== ERROR ===== */' ; break }
+    default { $m.Value }
+  }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
