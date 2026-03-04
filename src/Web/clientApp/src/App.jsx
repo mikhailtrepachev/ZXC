@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import CreateAccountPage from "./pages/CreateAccountPage";
 import AccountsPage from "./pages/AccountsPage";
+import AccountDetailsPage from "./pages/AccountDetailsPage";
+import AccountConversionPage from "./pages/AccountConversionPage";
 import CardsPage from "./pages/CardsPage";
 import CardDetailsPage from "./pages/CardDetailsPage";
 import LoansPage from "./pages/LoansPage";
@@ -61,6 +63,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AccountsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/accounts/:accountNumber"
+          element={
+            <ProtectedRoute>
+              <AccountDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/accounts/:accountNumber/conversion"
+          element={
+            <ProtectedRoute>
+              <AccountConversionPage />
             </ProtectedRoute>
           }
         />
