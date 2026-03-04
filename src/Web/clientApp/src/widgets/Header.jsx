@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getAccessToken, getCurrentUserFromToken, logoutUser, resolveUserDisplayNameByEmail } from "../auth/session";
+import {
+  getAccessToken,
+  getCurrentUserFromToken,
+  logoutUser,
+  resolveUserDisplayNameByEmail,
+} from "../auth/session";
 import "./header_style.css";
 
 const NAV = [
-  { label: "Ucty", href: "/accounts" },
+  { label: "Účty", href: "/accounts" },
   { label: "Karty", href: "/cards" },
-  { label: "Uvery", href: "/loans" },
+  { label: "Úvěry", href: "/loans" },
   { label: "Platby", href: "/payments" },
 ];
 
@@ -32,7 +37,9 @@ function writeFallbackStorage(value) {
 }
 
 function normalizeUserKey(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getFallbackReadIds(userKey) {
@@ -95,8 +102,18 @@ function transactionIsIncome(type) {
 
 function mapApiNotification(item) {
   const id = Number(pick(item, "id", "Id"));
-  const message = String(pick(item, "message", "Message", "text", "Text") || "").trim();
-  const createdAt = pick(item, "createdAt", "CreatedAt", "created", "Created", "date", "Date");
+  const message = String(
+    pick(item, "message", "Message", "text", "Text") || "",
+  ).trim();
+  const createdAt = pick(
+    item,
+    "createdAt",
+    "CreatedAt",
+    "created",
+    "Created",
+    "date",
+    "Date",
+  );
   const isRead = Boolean(pick(item, "isRead", "IsRead"));
 
   if (!Number.isFinite(id) || !message) {
@@ -122,10 +139,16 @@ function mapTransactionToNotification(item, readSet) {
   const income = transactionIsIncome(pick(item, "type", "Type"));
   const amount = Number(pick(item, "amount", "Amount"));
   const absolute = Number.isFinite(amount) ? Math.abs(amount) : 0;
-  const counterparty = String(pick(item, "counterpartyAccount", "CounterpartyAccount") || "").trim();
-  const description = String(pick(item, "description", "Description") || "").trim();
+  const counterparty = String(
+    pick(item, "counterpartyAccount", "CounterpartyAccount") || "",
+  ).trim();
+  const description = String(
+    pick(item, "description", "Description") || "",
+  ).trim();
   const date = pick(item, "date", "Date");
-  const message = description || `${income ? "Prichozi prevod" : "Odchozi prevod"} ${counterparty ? `(${counterparty})` : ""}`.trim();
+  const message =
+    description ||
+    `${income ? "Příchozí převod" : "Odchozí převod"} ${counterparty ? `(${counterparty})` : ""}`.trim();
   const localId = `tx-${id}`;
 
   return {
@@ -143,7 +166,13 @@ function resolveUserLabel(payload) {
     return "";
   }
 
-  const email = payload.email || payload.Email || payload.userName || payload.UserName || payload.username || "";
+  const email =
+    payload.email ||
+    payload.Email ||
+    payload.userName ||
+    payload.UserName ||
+    payload.username ||
+    "";
 
   const raw =
     payload.fullName ||
@@ -266,9 +295,14 @@ export default function Header() {
     };
   }, []);
 
-  const cabinetLabel = currentUser || "Internetove bankovnictvi";
-  const currentUserKey = normalizeUserKey(getCurrentUserFromToken() || cabinetLabel);
-  const unreadCount = notifications.reduce((sum, item) => sum + (item.isRead ? 0 : 1), 0);
+  const cabinetLabel = currentUser || "Internetové bankovnictví";
+  const currentUserKey = normalizeUserKey(
+    getCurrentUserFromToken() || cabinetLabel,
+  );
+  const unreadCount = notifications.reduce(
+    (sum, item) => sum + (item.isRead ? 0 : 1),
+    0,
+  );
 
   const loadNotifications = async () => {
     if (!isAuthorized) {
@@ -308,9 +342,13 @@ export default function Header() {
         }
 
         const payload = await response.json().catch(() => []);
-        const list = Array.isArray(payload) ? payload.map(mapApiNotification).filter(Boolean) : [];
+        const list = Array.isArray(payload)
+          ? payload.map(mapApiNotification).filter(Boolean)
+          : [];
         const sorted = list.sort(
-          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          (a, b) =>
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime(),
         );
         setNotifications(sorted);
         setNotificationsMode("server");
@@ -331,7 +369,7 @@ export default function Header() {
       if (!fallbackResponse.ok) {
         setNotifications([]);
         setNotificationsMode("none");
-        setNotificationsError("Upozorneni nejsou momentalne dostupna.");
+        setNotificationsError("Upozornění nejsou momentálně dostupná.");
         setNotificationsLoading(false);
         return;
       }
@@ -339,18 +377,22 @@ export default function Header() {
       const payload = await fallbackResponse.json().catch(() => []);
       const readSet = new Set(getFallbackReadIds(currentUserKey));
       const fallbackItems = Array.isArray(payload)
-        ? payload.map((item) => mapTransactionToNotification(item, readSet)).filter(Boolean)
+        ? payload
+            .map((item) => mapTransactionToNotification(item, readSet))
+            .filter(Boolean)
         : [];
 
       const sorted = fallbackItems.sort(
-        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime(),
       );
       setNotifications(sorted);
       setNotificationsMode("fallback");
     } catch {
       setNotifications([]);
       setNotificationsMode("none");
-      setNotificationsError("Upozorneni nejsou momentalne dostupna.");
+      setNotificationsError("Upozornění nejsou momentálně dostupná.");
     } finally {
       setNotificationsLoading(false);
     }
@@ -382,7 +424,9 @@ export default function Header() {
       nextReadIds.add(notification.id);
       setFallbackReadIds(currentUserKey, Array.from(nextReadIds));
       setNotifications((previous) =>
-        previous.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+        previous.map((item) =>
+          item.id === notification.id ? { ...item, isRead: true } : item,
+        ),
       );
       return;
     }
@@ -417,7 +461,9 @@ export default function Header() {
         }
 
         setNotifications((previous) =>
-          previous.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+          previous.map((item) =>
+            item.id === notification.id ? { ...item, isRead: true } : item,
+          ),
         );
         return;
       } catch {
@@ -425,7 +471,7 @@ export default function Header() {
       }
     }
 
-    setNotificationsError("Nepodarilo se oznacit upozorneni jako prectene.");
+    setNotificationsError("Nepodařilo se označit upozornění jako přečtené.");
   };
 
   const handleMarkAllNotificationsRead = async () => {
@@ -440,7 +486,9 @@ export default function Header() {
         nextReadIds.add(item.id);
       }
       setFallbackReadIds(currentUserKey, Array.from(nextReadIds));
-      setNotifications((previous) => previous.map((item) => ({ ...item, isRead: true })));
+      setNotifications((previous) =>
+        previous.map((item) => ({ ...item, isRead: true })),
+      );
       return;
     }
 
@@ -472,14 +520,16 @@ export default function Header() {
           break;
         }
 
-        setNotifications((previous) => previous.map((item) => ({ ...item, isRead: true })));
+        setNotifications((previous) =>
+          previous.map((item) => ({ ...item, isRead: true })),
+        );
         return;
       } catch {
         // try next endpoint
       }
     }
 
-    setNotificationsError("Nepodarilo se oznacit vse jako prectene.");
+    setNotificationsError("Nepodařilo se označit vše jako přečtené.");
   };
 
   const handleLogout = async () => {
@@ -527,10 +577,10 @@ export default function Header() {
                       Karty
                     </Link>
                     <Link className="site-header__dropdownLink" to="/accounts">
-                      Ucty
+                      Účty
                     </Link>
                     <Link className="site-header__dropdownLink" to="/loans">
-                      Uvery
+                      Úvěry
                     </Link>
                     <Link className="site-header__dropdownLink" to="/payments">
                       Platby
@@ -552,7 +602,10 @@ export default function Header() {
           <div className="site-header__actions">
             {isAuthorized ? (
               <>
-                <div className="site-header__notifications" ref={notificationsRef}>
+                <div
+                  className="site-header__notifications"
+                  ref={notificationsRef}
+                >
                   <button
                     className="site-header__iconButton site-header__notificationButton"
                     type="button"
@@ -565,46 +618,67 @@ export default function Header() {
                     aria-haspopup="menu"
                   >
                     <BellIcon />
-                    {unreadCount > 0 && <span className="site-header__notificationBadge">{unreadCount > 99 ? "99+" : unreadCount}</span>}
+                    {unreadCount > 0 && (
+                      <span className="site-header__notificationBadge">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </button>
 
                   {notificationsOpen && (
-                    <div className="site-header__notificationsDropdown" role="menu">
+                    <div
+                      className="site-header__notificationsDropdown"
+                      role="menu"
+                    >
                       <div className="site-header__notificationsHead">
-                        <strong>Upozorneni</strong>
+                        <strong>Upozornění</strong>
                         <button
                           className="site-header__notificationsAction"
                           type="button"
                           onClick={handleMarkAllNotificationsRead}
                           disabled={unreadCount === 0}
                         >
-                          Oznacit vse
+                          Označit vše
                         </button>
                       </div>
 
-                      {notificationsLoading && <p className="site-header__notificationsState">Nacitam...</p>}
+                      {notificationsLoading && (
+                        <p className="site-header__notificationsState">
+                          Načítám...
+                        </p>
+                      )}
                       {!notificationsLoading && notificationsError && (
-                        <p className="site-header__notificationsState site-header__notificationsState--error">{notificationsError}</p>
+                        <p className="site-header__notificationsState site-header__notificationsState--error">
+                          {notificationsError}
+                        </p>
                       )}
-                      {!notificationsLoading && !notificationsError && notifications.length === 0 && (
-                        <p className="site-header__notificationsState">Zadne nove udalosti.</p>
-                      )}
+                      {!notificationsLoading &&
+                        !notificationsError &&
+                        notifications.length === 0 && (
+                          <p className="site-header__notificationsState">
+                            Žádné nové události.
+                          </p>
+                        )}
 
-                      {!notificationsLoading && !notificationsError && notifications.length > 0 && (
-                        <div className="site-header__notificationsList">
-                          {notifications.slice(0, 8).map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              className={`site-header__notificationItem ${item.isRead ? "" : "is-unread"}`}
-                              onClick={() => handleMarkNotificationRead(item)}
-                            >
-                              <span>{item.message}</span>
-                              <small>{formatNotificationDate(item.createdAt)}</small>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {!notificationsLoading &&
+                        !notificationsError &&
+                        notifications.length > 0 && (
+                          <div className="site-header__notificationsList">
+                            {notifications.slice(0, 8).map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                className={`site-header__notificationItem ${item.isRead ? "" : "is-unread"}`}
+                                onClick={() => handleMarkNotificationRead(item)}
+                              >
+                                <span>{item.message}</span>
+                                <small>
+                                  {formatNotificationDate(item.createdAt)}
+                                </small>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   )}
                 </div>
@@ -620,17 +694,27 @@ export default function Header() {
                     aria-haspopup="menu"
                     aria-expanded={userMenuOpen}
                   >
-                    <span className="site-header__cabinetText">{cabinetLabel}</span>
+                    <span className="site-header__cabinetText">
+                      {cabinetLabel}
+                    </span>
                     <UserIcon />
                   </button>
 
                   {userMenuOpen && (
                     <div className="site-header__userDropdown" role="menu">
-                      <button className="site-header__userDropdownButton" type="button" onClick={handleUserSettings}>
-                        Nastaveni uzivatele
+                      <button
+                        className="site-header__userDropdownButton"
+                        type="button"
+                        onClick={handleUserSettings}
+                      >
+                        Nastavení uživatele
                       </button>
-                      <button className="site-header__userDropdownButton" type="button" onClick={handleLogout}>
-                        Odhlasit se
+                      <button
+                        className="site-header__userDropdownButton"
+                        type="button"
+                        onClick={handleLogout}
+                      >
+                        Odhlásit se
                       </button>
                     </div>
                   )}
@@ -643,14 +727,14 @@ export default function Header() {
                   type="button"
                   onClick={() => (window.location.href = "/login")}
                 >
-                  Prihlasit se
+                  Přihlásit se
                 </button>
                 <button
                   className="site-header__button site-header__button--primary"
                   type="button"
                   onClick={() => (window.location.href = "/register")}
                 >
-                  Otevrit ucet
+                  Otevřít účet
                 </button>
               </>
             )}
@@ -686,7 +770,7 @@ export default function Header() {
             <div className="mobile-menu__label">Kategorie</div>
             <div className="mobile-menu__links">
               <a href="#private" onClick={() => setMobileOpen(false)}>
-                Pro obcany
+                Pro občany
               </a>
               <a href="#business" onClick={() => setMobileOpen(false)}>
                 Pro podnikatele
@@ -698,7 +782,7 @@ export default function Header() {
                 Podpora
               </a>
               <a href="#atm" onClick={() => setMobileOpen(false)}>
-                Pobocky a bankomaty
+                Pobočky a bankomaty
               </a>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
                 {cabinetLabel}
@@ -713,10 +797,10 @@ export default function Header() {
                 Karty
               </Link>
               <Link to="/accounts" onClick={() => setMobileOpen(false)}>
-                Ucty
+                Účty
               </Link>
               <Link to="/loans" onClick={() => setMobileOpen(false)}>
-                Uvery
+                Úvěry
               </Link>
               <Link to="/payments" onClick={() => setMobileOpen(false)}>
                 Platby
@@ -726,7 +810,11 @@ export default function Header() {
 
           <div className="mobile-menu__cta">
             {isAuthorized ? (
-              <button className="site-header__button site-header__button--primary" type="button" onClick={handleLogout}>
+              <button
+                className="site-header__button site-header__button--primary"
+                type="button"
+                onClick={handleLogout}
+              >
                 Odhlasit se
               </button>
             ) : (
@@ -771,8 +859,17 @@ function ChevronDown() {
 function UserIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.5 20a7.5 7.5 0 0 1 15 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -786,7 +883,12 @@ function BellIcon() {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
-      <path d="M10 18a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M10 18a2 2 0 0 0 4 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -794,7 +896,12 @@ function BellIcon() {
 function MenuIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M4 7h16M4 12h16M4 17h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -802,7 +909,12 @@ function MenuIcon() {
 function CloseIcon() {
   return (
     <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

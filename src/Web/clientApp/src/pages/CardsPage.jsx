@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAccessToken, resolveUserDisplayNameByEmail, saveLocalCardPin } from "../auth/session";
+import {
+  getAccessToken,
+  resolveUserDisplayNameByEmail,
+  saveLocalCardPin,
+} from "../auth/session";
 import "./PageLayout.css";
 import "./CardsPage.css";
 
@@ -132,7 +136,11 @@ function extractAccountList(payload) {
     }
 
     const first = value[0];
-    if (first && typeof first === "object" && ("accountNumber" in first || "AccountNumber" in first)) {
+    if (
+      first &&
+      typeof first === "object" &&
+      ("accountNumber" in first || "AccountNumber" in first)
+    ) {
       return value;
     }
   }
@@ -159,7 +167,9 @@ export default function CardsPage() {
 
   const [tempBlockedIds, setTempBlockedIds] = useState(() => {
     const parsed = parseJsonStorage(TEMP_BLOCKED_STORAGE_KEY, []);
-    return Array.isArray(parsed) ? parsed.map((id) => Number(id)).filter(Number.isFinite) : [];
+    return Array.isArray(parsed)
+      ? parsed.map((id) => Number(id)).filter(Number.isFinite)
+      : [];
   });
 
   const [cardLimits, setCardLimits] = useState(() => {
@@ -178,7 +188,10 @@ export default function CardsPage() {
   const [limitError, setLimitError] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(TEMP_BLOCKED_STORAGE_KEY, JSON.stringify(tempBlockedIds));
+    localStorage.setItem(
+      TEMP_BLOCKED_STORAGE_KEY,
+      JSON.stringify(tempBlockedIds),
+    );
   }, [tempBlockedIds]);
 
   useEffect(() => {
@@ -196,8 +209,15 @@ export default function CardsPage() {
         id,
         isLocallyBlocked,
         isActiveUi,
-        holderLabel: resolveUserDisplayNameByEmail(profileEmail, card.holderName),
-        statusLabel: !card.isActive ? "Blokovana bankou" : isLocallyBlocked ? "Docasne blokovana" : "Aktivni",
+        holderLabel: resolveUserDisplayNameByEmail(
+          profileEmail,
+          card.holderName,
+        ),
+        statusLabel: !card.isActive
+          ? "Blokována bankou"
+          : isLocallyBlocked
+            ? "Dočasně blokována"
+            : "Aktivní",
         cardTypeLabel: card.isVirtual ? "Visa Virtual" : "Visa Classic",
         limit: Number(cardLimits[id]) || null,
       };
@@ -216,7 +236,10 @@ export default function CardsPage() {
 
       return {
         id: transaction.id,
-        merchant: transaction.description?.trim() || transaction.counterpartyAccount || "Kartova transakce",
+        merchant:
+          transaction.description?.trim() ||
+          transaction.counterpartyAccount ||
+          "Kartová transakce",
         date: formatDate(transaction.date),
         amount: `${isIncome ? "+" : "-"}${formatMoney(absoluteAmount)}`,
         isIncome,
@@ -247,7 +270,10 @@ export default function CardsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se nacist karty.");
+        const message = await readErrorMessage(
+          response,
+          "Nepodařilo se načíst karty.",
+        );
         setCardsError(message);
         setCards([]);
         return;
@@ -256,7 +282,7 @@ export default function CardsPage() {
       const payload = await response.json().catch(() => []);
       setCards(Array.isArray(payload) ? payload : []);
     } catch {
-      setCardsError("Nepodarilo se nacist karty.");
+      setCardsError("Nepodařilo se načíst karty.");
       setCards([]);
     } finally {
       setIsCardsLoading(false);
@@ -275,7 +301,10 @@ export default function CardsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se nacist historii transakci.");
+        const message = await readErrorMessage(
+          response,
+          "Nepodařilo se načíst historii transakcí.",
+        );
         setTransactionsError(message);
         setTransactions([]);
         return;
@@ -284,7 +313,7 @@ export default function CardsPage() {
       const payload = await response.json().catch(() => []);
       setTransactions(Array.isArray(payload) ? payload : []);
     } catch {
-      setTransactionsError("Nepodarilo se nacist historii transakci.");
+      setTransactionsError("Nepodařilo se načíst historii transakcí.");
       setTransactions([]);
     } finally {
       setIsTransactionsLoading(false);
@@ -305,17 +334,21 @@ export default function CardsPage() {
       }
 
       const payload = await response.json().catch(() => null);
-      const email = String(pick(payload, "email", "Email", "userName", "UserName") || "").trim();
+      const email = String(
+        pick(payload, "email", "Email", "userName", "UserName") || "",
+      ).trim();
       setProfileEmail(email);
       const rawAccounts = extractAccountList(payload);
       const list = Array.isArray(rawAccounts) ? rawAccounts : [];
 
       setAccountOptions(
         list.map((account) => ({
-          accountNumber: String(pick(account, "accountNumber", "AccountNumber") || ""),
+          accountNumber: String(
+            pick(account, "accountNumber", "AccountNumber") || "",
+          ),
           isFrozen: Boolean(pick(account, "isFrozen", "IsFrozen")),
           type: String(pick(account, "type", "Type") || ""),
-        }))
+        })),
       );
 
       if (list.length === 0) {
@@ -364,12 +397,12 @@ export default function CardsPage() {
 
   const handleCreateCard = async () => {
     if (!termsAccepted) {
-      setCreateCardError("Nejdrive potvrdte podminky.");
+      setCreateCardError("Nejdříve potvrďte podmínky.");
       return;
     }
 
     if (!/^\d{4}$/.test(pinCode)) {
-      setCreateCardError("Zadejte 4mistny PIN.");
+      setCreateCardError("Zadejte 4místný PIN.");
       return;
     }
 
@@ -378,14 +411,16 @@ export default function CardsPage() {
         (account) =>
           account.accountNumber &&
           !account.isFrozen &&
-          String(account.type || "").toLowerCase() !== "investment"
+          String(account.type || "").toLowerCase() !== "investment",
       )?.accountNumber ||
-      accountOptions.find((account) => account.accountNumber && !account.isFrozen)?.accountNumber ||
+      accountOptions.find(
+        (account) => account.accountNumber && !account.isFrozen,
+      )?.accountNumber ||
       accountOptions[0]?.accountNumber ||
       "";
 
     if (!targetAccountNumber) {
-      setCreateCardError("Neexistuje dostupny ucet pro vydani karty.");
+      setCreateCardError("Neexistuje dostupný účet pro vydání karty.");
       return;
     }
 
@@ -405,25 +440,30 @@ export default function CardsPage() {
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response, "Nepodarilo se vytvorit kartu.");
+        const message = await readErrorMessage(
+          response,
+          "Nepodařilo se vytvořit kartu.",
+        );
         setCreateCardError(message);
         return;
       }
 
       const createdCardRaw = await response.text().catch(() => "");
-      const createdCardId = Number(String(createdCardRaw).replace(/"/g, "").trim());
+      const createdCardId = Number(
+        String(createdCardRaw).replace(/"/g, "").trim(),
+      );
       if (Number.isFinite(createdCardId) && createdCardId > 0) {
         saveLocalCardPin(createdCardId, pinCode);
       }
 
       await loadCards();
-      setNotice({ type: "ok", text: "Nova karta byla uspesne vytvorena." });
+      setNotice({ type: "ok", text: "Nová karta byla úspěšně vytvořena." });
       setIsCreateModalOpen(false);
       setCreateCardError("");
       setTermsAccepted(false);
       setPinCode("");
     } catch {
-      setCreateCardError("Nepodarilo se vytvorit kartu.");
+      setCreateCardError("Nepodařilo se vytvořit kartu.");
     } finally {
       setIsCreatingCard(false);
     }
@@ -431,42 +471,51 @@ export default function CardsPage() {
 
   const handleShowPin = () => {
     if (!selectedCard) {
-      setNotice({ type: "error", text: "Nejdrive vyberte kartu." });
+      setNotice({ type: "error", text: "Nejdříve vyberte kartu." });
       return;
     }
 
     setNotice({
       type: "info",
-      text: "PIN nelze zobrazit. Banka ho uklada pouze jako hash z bezpecnostnich duvodu.",
+      text: "PIN nelze zobrazit. Banka ho ukládá pouze jako hash z bezpečnostních důvodů.",
     });
   };
 
   const handleToggleTemporaryBlock = () => {
     if (!selectedCard) {
-      setNotice({ type: "error", text: "Nejdrive vyberte kartu." });
+      setNotice({ type: "error", text: "Nejdříve vyberte kartu." });
       return;
     }
 
     if (!selectedCard.isActive && !selectedCard.isLocallyBlocked) {
-      setNotice({ type: "error", text: "Tato karta je blokovana bankou a nelze ji zde odblokovat." });
+      setNotice({
+        type: "error",
+        text: "Tato karta je blokována bankou a nelze ji zde odblokovat.",
+      });
       return;
     }
 
     setTempBlockedIds((previous) => {
       const exists = previous.includes(selectedCard.id);
       if (exists) {
-        setNotice({ type: "ok", text: "Karta byla odblokovana pro online pouziti." });
+        setNotice({
+          type: "ok",
+          text: "Karta byla odblokována pro online použití.",
+        });
         return previous.filter((id) => id !== selectedCard.id);
       }
 
-      setNotice({ type: "warn", text: "Karta byla docasne blokovana na tomto zarizeni." });
+      setNotice({
+        type: "warn",
+        text: "Karta byla dočasně blokována na tomto zařízení.",
+      });
       return [...previous, selectedCard.id];
     });
   };
 
   const openLimitModal = () => {
     if (!selectedCard) {
-      setNotice({ type: "error", text: "Nejdrive vyberte kartu." });
+      setNotice({ type: "error", text: "Nejdříve vyberte kartu." });
       return;
     }
 
@@ -483,18 +532,18 @@ export default function CardsPage() {
 
   const saveLimit = () => {
     if (!selectedCard) {
-      setLimitError("Nejdrive vyberte kartu.");
+      setLimitError("Nejdříve vyberte kartu.");
       return;
     }
 
     const parsed = Number(limitInput);
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      setLimitError("Zadejte kladnou castku limitu.");
+      setLimitError("Zadejte kladnou částku limitu.");
       return;
     }
 
     if (parsed > 500000) {
-      setLimitError("Maximalni limit je 500 000 Kc.");
+      setLimitError("Maximální limit je 500 000 Kč.");
       return;
     }
 
@@ -503,43 +552,64 @@ export default function CardsPage() {
       [selectedCard.id]: Math.round(parsed),
     }));
 
-    setNotice({ type: "ok", text: `Limit karty byl nastaven na ${formatMoney(parsed)}.` });
+    setNotice({
+      type: "ok",
+      text: `Limit karty byl nastaven na ${formatMoney(parsed)}.`,
+    });
     closeLimitModal();
   };
 
   const handleAddToWallet = () => {
     if (!selectedCard) {
-      setNotice({ type: "error", text: "Nejdrive vyberte kartu." });
+      setNotice({ type: "error", text: "Nejdříve vyberte kartu." });
       return;
     }
 
     if (!selectedCard.isActiveUi) {
-      setNotice({ type: "error", text: "Pro pridani do Apple/Google Pay musi byt karta aktivni." });
+      setNotice({
+        type: "error",
+        text: "Pro přidání do Apple/Google Pay musí být karta aktivní.",
+      });
       return;
     }
 
-    setNotice({ type: "ok", text: "Karta byla pripravena pro pridani do Apple/Google Pay." });
+    setNotice({
+      type: "ok",
+      text: "Karta byla připravena pro přidání do Apple/Google Pay.",
+    });
   };
 
   return (
     <div className="page cards-page">
       <div className="page__container">
         <h1 className="page__title">Karty</h1>
-        <p className="page__subtitle">Sprava platebnich karet a jejich operaci.</p>
+        <p className="page__subtitle">
+          Správa platebních karet a jejich operací.
+        </p>
 
         <div className="page__grid">
           <section className="page__panel">
             <div className="cards-page__panelHead">
               <h2 className="page__panelTitle">Moje karty</h2>
-              <button className="page__chip" type="button" onClick={openCreateCardModal}>
-                Nova karta
+              <button
+                className="page__chip"
+                type="button"
+                onClick={openCreateCardModal}
+              >
+                Nová karta
               </button>
             </div>
 
-            {isCardsLoading && <p className="cards-page__state">Nacitam karty...</p>}
-            {!isCardsLoading && cardsError && <p className="cards-page__state cards-page__state--error">{cardsError}</p>}
+            {isCardsLoading && (
+              <p className="cards-page__state">Načítám karty...</p>
+            )}
+            {!isCardsLoading && cardsError && (
+              <p className="cards-page__state cards-page__state--error">
+                {cardsError}
+              </p>
+            )}
             {!isCardsLoading && !cardsError && cardsView.length === 0 && (
-              <p className="cards-page__state">Zatim nemate zadne karty.</p>
+              <p className="cards-page__state">Zatím nemáte žádné karty.</p>
             )}
 
             {!isCardsLoading && !cardsError && cardsView.length > 0 && (
@@ -553,19 +623,23 @@ export default function CardsPage() {
                   >
                     <div className="page__itemTop">
                       <div>
-                        <p className="page__itemTitle">{card.isVirtual ? "Virtualni karta" : "Hlavni karta"}</p>
+                        <p className="page__itemTitle">
+                          {card.isVirtual ? "Virtuální karta" : "Hlavní karta"}
+                        </p>
                         <p className="page__itemSubtitle">
                           {card.cardTypeLabel} - {card.maskedNumber}
                         </p>
                       </div>
-                      <span className={`page__badge ${card.isActiveUi ? "page__badge--ok" : "cards-page__badge--warn"}`}>
+                      <span
+                        className={`page__badge ${card.isActiveUi ? "page__badge--ok" : "cards-page__badge--warn"}`}
+                      >
                         {card.statusLabel}
                       </span>
                     </div>
 
                     <div className="page__itemMeta">
-                      <span>Drzitel: {card.holderLabel}</span>
-                      <span>Dostupny zustatek: {formatMoney(balance)}</span>
+                      <span>Držitel: {card.holderLabel}</span>
+                      <span>Dostupný zůstatek: {formatMoney(balance)}</span>
                       <span>Platnost: {card.expiryDate}</span>
                     </div>
                   </button>
@@ -575,19 +649,37 @@ export default function CardsPage() {
           </section>
 
           <section className="page__panel">
-            <h2 className="page__panelTitle">Rychle akce</h2>
+            <h2 className="page__panelTitle">Rychlé akce</h2>
             <div className="page__actions">
-              <button className="page__chip" type="button" onClick={openLimitModal}>
+              <button
+                className="page__chip"
+                type="button"
+                onClick={openLimitModal}
+              >
                 Nastavit limity
               </button>
-              <button className="page__chip" type="button" onClick={handleShowPin}>
+              <button
+                className="page__chip"
+                type="button"
+                onClick={handleShowPin}
+              >
                 Zobrazit PIN
               </button>
-              <button className="page__chip" type="button" onClick={handleToggleTemporaryBlock}>
-                {selectedCard?.isActiveUi ? "Docasne blokovat kartu" : "Odblokovat kartu"}
+              <button
+                className="page__chip"
+                type="button"
+                onClick={handleToggleTemporaryBlock}
+              >
+                {selectedCard?.isActiveUi
+                  ? "Dočasně blokovat kartu"
+                  : "Odblokovat kartu"}
               </button>
-              <button className="page__chip" type="button" onClick={handleAddToWallet}>
-                Pridat kartu do Apple/Google Pay
+              <button
+                className="page__chip"
+                type="button"
+                onClick={handleAddToWallet}
+              >
+                Přidat kartu do Apple/Google Pay
               </button>
               <button className="page__chip" type="button" onClick={reloadAll}>
                 Obnovit data
@@ -595,55 +687,90 @@ export default function CardsPage() {
             </div>
 
             <p className="cards-page__selected">
-              {selectedCard ? `Aktivni karta: ${selectedCard.maskedNumber}` : "Vyberte kartu pro akce."}
+              {selectedCard
+                ? `Aktivní karta: ${selectedCard.maskedNumber}`
+                : "Vyberte kartu pro akce."}
             </p>
 
             {selectedCard?.limit ? (
-              <p className="cards-page__limit">Nastaveny lokalni limit: {formatMoney(selectedCard.limit)}</p>
+              <p className="cards-page__limit">
+                Nastavený lokální limit: {formatMoney(selectedCard.limit)}
+              </p>
             ) : (
-              <p className="cards-page__limit">Lokalni limit zatim neni nastaven.</p>
+              <p className="cards-page__limit">
+                Lokální limit zatím není nastaven.
+              </p>
             )}
 
-            {notice.text && <p className={`cards-page__notice cards-page__notice--${notice.type || "info"}`}>{notice.text}</p>}
+            {notice.text && (
+              <p
+                className={`cards-page__notice cards-page__notice--${notice.type || "info"}`}
+              >
+                {notice.text}
+              </p>
+            )}
           </section>
 
           <section className="page__panel page__panel--full">
             <div className="cards-page__panelHead">
-              <h2 className="page__panelTitle">Posledni transakce kartou</h2>
-              <button className="page__chip" type="button" onClick={loadTransactions} disabled={isTransactionsLoading}>
+              <h2 className="page__panelTitle">Poslední transakce kartou</h2>
+              <button
+                className="page__chip"
+                type="button"
+                onClick={loadTransactions}
+                disabled={isTransactionsLoading}
+              >
                 Obnovit historii
               </button>
             </div>
 
-            {isTransactionsLoading && <p className="cards-page__state">Nacitam transakce...</p>}
+            {isTransactionsLoading && (
+              <p className="cards-page__state">Načítám transakce...</p>
+            )}
             {!isTransactionsLoading && transactionsError && (
-              <p className="cards-page__state cards-page__state--error">{transactionsError}</p>
+              <p className="cards-page__state cards-page__state--error">
+                {transactionsError}
+              </p>
             )}
-            {!isTransactionsLoading && !transactionsError && transactionRows.length === 0 && (
-              <p className="cards-page__state">Transakcni historie je zatim prazdna.</p>
-            )}
+            {!isTransactionsLoading &&
+              !transactionsError &&
+              transactionRows.length === 0 && (
+                <p className="cards-page__state">
+                  Transakční historie je zatím prázdná.
+                </p>
+              )}
 
-            {!isTransactionsLoading && !transactionsError && transactionRows.length > 0 && (
-              <div className="page__table">
-                {transactionRows.map((transaction) => (
-                  <div className="page__row" key={transaction.id}>
-                    <span>{transaction.merchant}</span>
-                    <span>{transaction.date}</span>
-                    <span className={`page__amount ${transaction.isIncome ? "page__amount--in" : ""}`}>{transaction.amount}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {!isTransactionsLoading &&
+              !transactionsError &&
+              transactionRows.length > 0 && (
+                <div className="page__table">
+                  {transactionRows.map((transaction) => (
+                    <div className="page__row" key={transaction.id}>
+                      <span>{transaction.merchant}</span>
+                      <span>{transaction.date}</span>
+                      <span
+                        className={`page__amount ${transaction.isIncome ? "page__amount--in" : ""}`}
+                      >
+                        {transaction.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
           </section>
         </div>
 
         <button className="page__button" onClick={() => navigate("/accounts")}>
-          Zpet na ucty
+          Zpět na účty
         </button>
       </div>
 
       {isCreateModalOpen && (
-        <div className="cards-page__modalBackdrop" role="presentation" onClick={closeCreateCardModal}>
+        <div
+          className="cards-page__modalBackdrop"
+          role="presentation"
+          onClick={closeCreateCardModal}
+        >
           <div
             className="cards-page__modal"
             role="dialog"
@@ -651,13 +778,24 @@ export default function CardsPage() {
             aria-labelledby="cards-create-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="cards-create-title">Nova kreditni karta</h2>
-            <p className="cards-page__modalIntro">Pred vytvorenim karty si prectete podminky:</p>
+            <h2 id="cards-create-title">Nová kreditní karta</h2>
+            <p className="cards-page__modalIntro">
+              Před vytvořením karty si přečtěte podmínky:
+            </p>
 
             <ul className="cards-page__terms">
-              <li>Kartu lze pouzivat pouze v souladu s obchodnimi podminkami banky.</li>
-              <li>Za bezpecnost plateb a prihlasovacich udaju odpovida drztel karty.</li>
-              <li>Banka muze kartu zablokovat pri podezreni na podvod nebo zneuziti.</li>
+              <li>
+                Kartu lze používat pouze v souladu s obchodními podmínkami
+                banky.
+              </li>
+              <li>
+                Za bezpečnost plateb a přihlašovacích údajů odpovídá držitel
+                karty.
+              </li>
+              <li>
+                Banka může kartu zablokovat při podezření na podvod nebo
+                zneužití.
+              </li>
             </ul>
 
             <label className="cards-page__checkbox">
@@ -666,30 +804,44 @@ export default function CardsPage() {
                 checked={termsAccepted}
                 onChange={(event) => setTermsAccepted(event.target.checked)}
               />
-              <span>Souhlasim s podminkami vydani karty.</span>
+              <span>Souhlasím s podmínkami vydání karty.</span>
             </label>
 
             <label className="cards-page__pin">
-              <span>PIN karty (4 cisla)</span>
+              <span>PIN karty (4 čísla)</span>
               <input
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={4}
                 value={pinCode}
-                onChange={(event) => setPinCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                onChange={(event) =>
+                  setPinCode(event.target.value.replace(/\D/g, "").slice(0, 4))
+                }
                 placeholder="0000"
               />
             </label>
 
-            {createCardError && <p className="cards-page__modalError">{createCardError}</p>}
+            {createCardError && (
+              <p className="cards-page__modalError">{createCardError}</p>
+            )}
 
             <div className="cards-page__modalActions">
-              <button type="button" className="cards-page__modalButton cards-page__modalButton--ghost" onClick={closeCreateCardModal} disabled={isCreatingCard}>
-                Zrusit
+              <button
+                type="button"
+                className="cards-page__modalButton cards-page__modalButton--ghost"
+                onClick={closeCreateCardModal}
+                disabled={isCreatingCard}
+              >
+                Zrušit
               </button>
-              <button type="button" className="cards-page__modalButton cards-page__modalButton--primary" onClick={handleCreateCard} disabled={isCreatingCard || !termsAccepted}>
-                {isCreatingCard ? "Vytvarim..." : "Potvrdit a vytvorit kartu"}
+              <button
+                type="button"
+                className="cards-page__modalButton cards-page__modalButton--primary"
+                onClick={handleCreateCard}
+                disabled={isCreatingCard || !termsAccepted}
+              >
+                {isCreatingCard ? "Vytvářím..." : "Potvrdit a vytvořit kartu"}
               </button>
             </div>
           </div>
@@ -697,7 +849,11 @@ export default function CardsPage() {
       )}
 
       {isLimitModalOpen && (
-        <div className="cards-page__modalBackdrop" role="presentation" onClick={closeLimitModal}>
+        <div
+          className="cards-page__modalBackdrop"
+          role="presentation"
+          onClick={closeLimitModal}
+        >
           <div
             className="cards-page__modal cards-page__modal--small"
             role="dialog"
@@ -705,13 +861,15 @@ export default function CardsPage() {
             aria-labelledby="cards-limit-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="cards-limit-title">Nastaveni limitu</h2>
+            <h2 id="cards-limit-title">Nastavení limitu</h2>
             <p className="cards-page__modalIntro">
-              {selectedCard ? `Karta ${selectedCard.maskedNumber}` : "Vyberte kartu"}
+              {selectedCard
+                ? `Karta ${selectedCard.maskedNumber}`
+                : "Vyberte kartu"}
             </p>
 
             <label className="cards-page__pin">
-              <span>Dennni limit v Kc</span>
+              <span>Denní limit v Kč</span>
               <input
                 type="number"
                 min={1}
@@ -719,18 +877,28 @@ export default function CardsPage() {
                 step={100}
                 value={limitInput}
                 onChange={(event) => setLimitInput(event.target.value)}
-                placeholder="Napriklad 50000"
+                placeholder="Například, 50000"
               />
             </label>
 
-            {limitError && <p className="cards-page__modalError">{limitError}</p>}
+            {limitError && (
+              <p className="cards-page__modalError">{limitError}</p>
+            )}
 
             <div className="cards-page__modalActions">
-              <button type="button" className="cards-page__modalButton cards-page__modalButton--ghost" onClick={closeLimitModal}>
-                Zrusit
+              <button
+                type="button"
+                className="cards-page__modalButton cards-page__modalButton--ghost"
+                onClick={closeLimitModal}
+              >
+                Zrušit
               </button>
-              <button type="button" className="cards-page__modalButton cards-page__modalButton--primary" onClick={saveLimit}>
-                Ulozit limit
+              <button
+                type="button"
+                className="cards-page__modalButton cards-page__modalButton--primary"
+                onClick={saveLimit}
+              >
+                Uložit limit
               </button>
             </div>
           </div>
