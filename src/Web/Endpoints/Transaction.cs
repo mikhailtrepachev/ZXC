@@ -8,12 +8,11 @@ public class Transaction : EndpointGroupBase
 {
     public override void Map(RouteGroupBuilder group)
     {
-        group.RequireAuthorization() // Токен обязателен для всей группы
-            .MapPost(TransferMoney, "transfer");
-            
-        group.RequireAuthorization()
-            // POST /api/Transaction/transfer
-            .MapGet(GetHistory, "history");     // GET /api/Transaction/history <--- НОВОЕ
+        group.RequireAuthorization().MapPost(TransferMoney, "transfer");
+
+        group.RequireAuthorization().MapGet(GetHistory, "history");
+
+        group.RequireAuthorization().MapGet(GetRecipientPreview, "recipient/{accountNumber}");
     }
 
     public async Task<int> TransferMoney(ISender sender, [FromBody] TransferMoneyCommand command)
@@ -21,10 +20,20 @@ public class Transaction : EndpointGroupBase
         return await sender.Send(command);
     }
 
-    // Новый метод для получения списка
     public async Task<List<TransactionDto>> GetHistory(ISender sender)
     {
-        // Отправляем запрос (Query) в Application слой
         return await sender.Send(new GetTransactionsQuery());
+    }
+
+    public async Task<IResult> GetRecipientPreview(ISender sender, string accountNumber)
+    {
+        var recipient = await sender.Send(new GetTransferRecipientQuery(accountNumber));
+
+        if (recipient == null)
+        {
+            return Results.NotFound("Ucet prijemce nebyl nalezen.");
+        }
+
+        return Results.Ok(recipient);
     }
 }
