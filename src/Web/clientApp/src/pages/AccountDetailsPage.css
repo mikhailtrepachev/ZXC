@@ -125,8 +125,85 @@
   background: rgba(239, 68, 68, 0.14);
 }
 
+.account-details-page__state--ok {
+  color: #bbf7d0;
+  border-color: rgba(134, 239, 172, 0.38);
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.account-details-page__exportPanel .account-details-page__state {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.account-export {
+  display: grid;
+  gap: 14px;
+}
+
+.account-export__group {
+  display: grid;
+  gap: 8px;
+}
+
+.account-export__label {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--ad-text);
+}
+
+.account-export__list {
+  margin: 0;
+  padding-left: 24px;
+  display: grid;
+  gap: 6px;
+}
+
+.account-export__option {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ad-text);
+  font-size: 52px;
+  line-height: 1.1;
+  font-family: inherit;
+  border-bottom: 4px solid #57d66b;
+  cursor: pointer;
+}
+
+.account-export__option.is-active {
+  color: #f8fafc;
+}
+
+.account-export__option.is-static {
+  display: inline-block;
+  cursor: default;
+}
+
+.account-export__option--pdf {
+  font-size: 38px;
+}
+
+.account-export__option:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
 @media (max-width: 768px) {
   .account-details-page__head {
     flex-direction: column;
+  }
+
+  .account-export__label {
+    font-size: 28px;
+  }
+
+  .account-export__option {
+    font-size: 36px;
+  }
+
+  .account-export__option--pdf {
+    font-size: 30px;
   }
 }

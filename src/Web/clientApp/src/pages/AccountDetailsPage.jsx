@@ -71,6 +71,21 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "--";
+  }
+
+  return new Intl.DateTimeFormat("cs-CZ", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function extractAccountList(payload) {
   if (!payload || typeof payload !== "object") {
     return [];
@@ -170,6 +185,9 @@ export default function AccountDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [transactions, setTransactions] = useState([]);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
+  const [exportError, setExportError] = useState("");
 
   const loadData = async () => {
     setError("");
@@ -280,6 +298,119 @@ export default function AccountDetailsPage() {
       });
   }, [transactions, normalizedAccountNumber, account?.currency]);
 
+  const handleExportPdf = async () => {
+    setExportError("");
+    setExportMessage("");
+
+    if (transactionRows.length === 0) {
+      setExportError("Pro tento ucet neni co exportovat.");
+      return;
+    }
+
+    setIsExportingPdf(true);
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+      });
+
+      const marginX = 34;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const cols = [
+        { key: "date", label: "Datum", width: 118 },
+        { key: "counterparty", label: "Protiucet", width: 142 },
+        { key: "description", label: "Popis", width: 220 },
+        { key: "amount", label: "Castka", width: 80, align: "right" },
+      ];
+
+      let y = 42;
+
+      const drawTableHeader = () => {
+        let x = marginX;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+
+        for (const col of cols) {
+          doc.setDrawColor(204, 204, 204);
+          doc.rect(x, y, col.width, 22);
+          doc.text(col.label, x + 6, y + 15);
+          x += col.width;
+        }
+
+        y += 22;
+      };
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Vypis z uctu", marginX, y);
+      y += 20;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Cislo uctu: ${account?.accountNumber || normalizedAccountNumber || "--"}`, marginX, y);
+      y += 14;
+      doc.text(`Vygenerovano: ${formatTimestamp(new Date())}`, marginX, y);
+      y += 20;
+
+      drawTableHeader();
+
+      const rows = transactionRows.slice(0, 200);
+
+      for (const row of rows) {
+        const preparedCells = cols.map((col) => {
+          const value = String(row[col.key] ?? "");
+          return doc.splitTextToSize(value, col.width - 10);
+        });
+
+        const lineCount = Math.max(...preparedCells.map((lines) => Math.max(lines.length, 1)));
+        const rowHeight = lineCount * 12 + 10;
+
+        if (y + rowHeight > pageHeight - 34) {
+          doc.addPage();
+          y = 42;
+          drawTableHeader();
+        }
+
+        let x = marginX;
+
+        preparedCells.forEach((lines, index) => {
+          const col = cols[index];
+
+          doc.setDrawColor(225, 225, 225);
+          doc.rect(x, y, col.width, rowHeight);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+
+          lines.forEach((line, lineIndex) => {
+            const textY = y + 14 + lineIndex * 12;
+            if (col.align === "right") {
+              doc.text(line, x + col.width - 6, textY, { align: "right" });
+            } else {
+              doc.text(line, x + 5, textY);
+            }
+          });
+
+          x += col.width;
+        });
+
+        y += rowHeight;
+      }
+
+      const safeAccount = String(account?.accountNumber || normalizedAccountNumber || "ucet").replace(/[^\w-]/g, "");
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      doc.save(`vypis-${safeAccount}-${dateStamp}.pdf`);
+      setExportMessage("PDF bylo vygenerovano.");
+    } catch {
+      setExportError("Export do PDF se nepodaril.");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   return (
     <div className="page account-details-page">
       <div className="page__container account-details-page__container">
@@ -337,6 +468,30 @@ export default function AccountDetailsPage() {
                   <strong>{account.isFrozen ? "Zablokovany" : "Aktivni"}</strong>
                 </p>
               </div>
+            </section>
+
+            <section className="page__panel account-details-page__exportPanel">
+              <h2 className="page__panelTitle">Dokumenty</h2>
+              <div className="account-export">
+                <div className="account-export__group">
+                  <p className="account-export__label">Export:</p>
+                  <ul className="account-export__list">
+                    <li>
+                      <button
+                        type="button"
+                        className="account-export__option account-export__option--pdf is-active"
+                        onClick={handleExportPdf}
+                        disabled={isExportingPdf}
+                      >
+                        {isExportingPdf ? "Generuji PDF..." : "PDF"}
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {exportError && <p className="account-details-page__state account-details-page__state--error">{exportError}</p>}
+              {exportMessage && <p className="account-details-page__state account-details-page__state--ok">{exportMessage}</p>}
             </section>
 
             <section className="page__panel page__panel--full">
