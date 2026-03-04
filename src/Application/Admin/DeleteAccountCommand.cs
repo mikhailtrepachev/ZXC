@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using ZxcBank.Application.Common.Interfaces;
 
-namespace ZxcBank.Application.Admin.Commands.DeleteAccount; // Поменяй namespace, если папка другая
+namespace ZxcBank.Application.Admin;
 
 public record DeleteAccountCommand(int AccountId) : IRequest;
 

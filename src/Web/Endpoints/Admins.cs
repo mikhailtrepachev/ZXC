@@ -1,9 +1,5 @@
-﻿using MediatR;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using ZxcBank.Application.Account;
-using ZxcBank.Application.Admin.Commands.DeleteAccount;
+﻿using ZxcBank.Application.Account;
+using ZxcBank.Application.Admin;
 using ZxcBank.Application.UserSessions.Queries.GetUserLogsForAdmin;
 using ZxcBank.Application.UserSessions.Queries.GetUserSessions;
 
