@@ -137,6 +137,8 @@ function mapAccountForView(rawItem) {
   return {
     id,
     accountNumber,
+    balance,
+    currency,
     type,
     symbol,
     label,
@@ -377,6 +379,19 @@ export default function AccountsPage() {
     });
   };
 
+  const handleOpenAccountDetails = (account) => {
+    const accountNumber = String(account?.accountNumber || "").trim();
+    if (!accountNumber) {
+      return;
+    }
+
+    navigate(`/accounts/${encodeURIComponent(accountNumber)}`, {
+      state: {
+        account,
+      },
+    });
+  };
+
   return (
     <section className="accounts-page">
       <div className="accounts-shell">
@@ -392,14 +407,19 @@ export default function AccountsPage() {
           {!profileLoading && !profileError && accounts.length > 0 && (
             <div className="accounts-list">
               {accounts.map((item) => (
-                <article className={`account-card ${item.isFrozen ? "account-card--frozen" : ""}`} key={item.id}>
+                <button
+                  className={`account-card account-card--action ${item.isFrozen ? "account-card--frozen" : ""}`}
+                  type="button"
+                  key={item.id}
+                  onClick={() => handleOpenAccountDetails(item)}
+                >
                   <div className="account-card__icon">{item.symbol}</div>
                   <div className="account-card__content">
                     <p className="account-card__balance">{item.balanceText}</p>
                     <p className="account-card__label">{item.label}</p>
                     {item.chip && <p className="account-card__chip">{item.chip}</p>}
                   </div>
-                </article>
+                </button>
               ))}
             </div>
           )}

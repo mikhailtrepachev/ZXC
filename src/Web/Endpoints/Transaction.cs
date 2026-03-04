@@ -9,6 +9,7 @@ public class Transaction : EndpointGroupBase
     public override void Map(RouteGroupBuilder group)
     {
         group.RequireAuthorization().MapPost(TransferMoney, "transfer");
+        group.RequireAuthorization().MapPost(GetConversionEstimate, "conversion-estimate");
 
         group.RequireAuthorization().MapGet(GetHistory, "history");
 
@@ -23,6 +24,11 @@ public class Transaction : EndpointGroupBase
     public async Task<List<TransactionDto>> GetHistory(ISender sender)
     {
         return await sender.Send(new GetTransactionsQuery());
+    }
+
+    public async Task<ConversionEstimateDto> GetConversionEstimate(ISender sender, [FromBody] GetConversionEstimateQuery query)
+    {
+        return await sender.Send(query);
     }
 
     public async Task<IResult> GetRecipientPreview(ISender sender, string accountNumber)

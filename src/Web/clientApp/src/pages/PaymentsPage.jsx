@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getAccessToken } from "../auth/session";
 import "./PageLayout.css";
 import "./PaymentsPage.css";
@@ -140,6 +140,7 @@ async function readErrorMessage(response, fallbackMessage) {
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const accountPickerRef = useRef(null);
 
   const [profile, setProfile] = useState(null);
@@ -181,6 +182,7 @@ export default function PaymentsPage() {
 
   const selectedCurrencyName = selectedFromAccount?.currency || "CZK";
   const selectedCurrencyCode = currencyCodeFromName(selectedCurrencyName);
+  const preferredFromAccount = String(searchParams.get("from") || "").trim();
 
   const dailyLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
   const internetLimit = Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
@@ -236,10 +238,17 @@ export default function PaymentsPage() {
       return;
     }
 
+    if (preferredFromAccount && activeAccounts.some((account) => account.accountNumber === preferredFromAccount)) {
+      if (fromAccountNumber !== preferredFromAccount) {
+        setFromAccountNumber(preferredFromAccount);
+      }
+      return;
+    }
+
     if (!activeAccounts.some((account) => account.accountNumber === fromAccountNumber)) {
       setFromAccountNumber(activeAccounts[0].accountNumber);
     }
-  }, [activeAccounts, fromAccountNumber]);
+  }, [activeAccounts, fromAccountNumber, preferredFromAccount]);
 
   useEffect(() => {
     if (!fromAccountNumber || !toAccountNumber) {
