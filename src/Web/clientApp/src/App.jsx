@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import CreateAccountPage from "./pages/CreateAccountPage";
+import AdminPage from "./pages/AdminPage";
 import AccountsPage from "./pages/AccountsPage";
 import AccountDetailsPage from "./pages/AccountDetailsPage";
 import AccountConversionPage from "./pages/AccountConversionPage";
@@ -14,12 +15,14 @@ import Header from "./widgets/Header.jsx";
 import Footer from "./widgets/Footer.jsx";
 import {
   clearSession,
+  hasRole,
   isAuthenticated as checkAuthentication,
 } from "./auth/session";
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, requireAdmin = false }) {
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -28,11 +31,13 @@ function ProtectedRoute({ children }) {
       .then((authenticated) => {
         if (!isMounted) return;
         setIsAuthenticated(authenticated);
+        setIsAdmin(authenticated ? hasRole("Administrator") : false);
         if (!authenticated) clearSession();
       })
       .catch(() => {
         if (!isMounted) return;
         setIsAuthenticated(false);
+        setIsAdmin(false);
         clearSession();
       })
       .finally(() => {
@@ -47,8 +52,13 @@ function ProtectedRoute({ children }) {
 
   if (isChecking) return <div />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (requireAdmin && !isAdmin) return <Navigate to="/accounts" replace />;
 
   return children;
+}
+
+function HomeRoute() {
+  return <Navigate to={hasRole("Administrator") ? "/admin" : "/accounts"} replace />;
 }
 
 function App() {
@@ -56,7 +66,16 @@ function App() {
     <BrowserRouter>
       <Header />
       <Routes>
-        <Route path="/" element={<Navigate to="/accounts" />} />
+        <Route path="/" element={<HomeRoute />} />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/accounts"

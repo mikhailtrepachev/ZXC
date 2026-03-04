@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./LoginPage.css";
-import { persistSession } from "../auth/session";
+import { hasRole, persistSession } from "../auth/session";
 
 async function extractApiError(response, fallback) {
   const contentType = response.headers.get("content-type") ?? "";
@@ -59,7 +59,7 @@ export default function LoginPage() {
 
       const payload = await response.text().catch(() => "");
       persistSession(payload);
-      window.location.href = "/accounts";
+      window.location.href = hasRole("Administrator") ? "/admin" : "/accounts";
     } catch {
       setError("Přihlášení se nepodařilo. Zkuste to znovu.");
     } finally {

@@ -27,6 +27,20 @@ function decodeJwtPayload(token) {
   }
 }
 
+function normalizeRole(value) {
+  return String(value || "").trim();
+}
+
+function isPayloadExpired(payload) {
+  const exp = Number(payload?.exp);
+  if (!Number.isFinite(exp)) {
+    return false;
+  }
+
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  return exp <= nowInSeconds;
+}
+
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -204,23 +218,87 @@ export function getCurrentUserFromToken() {
   return payload.email || payload.unique_name || payload.name || payload.sub || "";
 }
 
+export function getCurrentUserRoles() {
+  const token = getAccessToken();
+  const payload = decodeJwtPayload(token);
+
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const claimKeys = [
+    "role",
+    "roles",
+    "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+  ];
+
+  const result = [];
+  for (const key of claimKeys) {
+    const raw = payload[key];
+
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        const role = normalizeRole(item);
+        if (role) {
+          result.push(role);
+        }
+      }
+      continue;
+    }
+
+    const role = normalizeRole(raw);
+    if (role) {
+      result.push(role);
+    }
+  }
+
+  return Array.from(new Set(result));
+}
+
+export function hasRole(expectedRole) {
+  const normalizedExpected = normalizeRole(expectedRole).toLowerCase();
+  if (!normalizedExpected) {
+    return false;
+  }
+
+  return getCurrentUserRoles().some((role) => role.toLowerCase() === normalizedExpected);
+}
+
 export async function isAuthenticated() {
   const token = getAccessToken();
   if (!token) {
     return false;
   }
 
-  try {
-    const response = await fetch("/api/Accounts/info", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    return response.ok;
-  } catch {
+  const payload = decodeJwtPayload(token);
+  if (!payload || isPayloadExpired(payload)) {
     return false;
+  }
+
+  const endpoints = [
+    "/api/UserSessions",
+    "/api/Notifications",
+    "/api/Users/manage/info",
+    "/api/Accounts/info",
+  ];
+
+  try {
+    for (const endpoint of endpoints) {
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        return true;
+      }
+    }
+
+    return true;
+  } catch {
+    return true;
   }
 }
 
