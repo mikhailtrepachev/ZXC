@@ -31,6 +31,16 @@ function normalizeRole(value) {
   return String(value || "").trim();
 }
 
+function isPayloadExpired(payload) {
+  const exp = Number(payload?.exp);
+  if (!Number.isFinite(exp)) {
+    return false;
+  }
+
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  return exp <= nowInSeconds;
+}
+
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -260,7 +270,17 @@ export async function isAuthenticated() {
     return false;
   }
 
-  const endpoints = ["/api/Accounts/info", "/api/Users/manage/info"];
+  const payload = decodeJwtPayload(token);
+  if (!payload || isPayloadExpired(payload)) {
+    return false;
+  }
+
+  const endpoints = [
+    "/api/UserSessions",
+    "/api/Notifications",
+    "/api/Users/manage/info",
+    "/api/Accounts/info",
+  ];
 
   try {
     for (const endpoint of endpoints) {
@@ -276,9 +296,9 @@ export async function isAuthenticated() {
       }
     }
 
-    return false;
+    return true;
   } catch {
-    return false;
+    return true;
   }
 }
 
