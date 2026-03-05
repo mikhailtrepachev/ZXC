@@ -3,6 +3,7 @@ using ZxcBank.Application.Common.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using ZxcBank.Infrastructure.Authentication;
 
 namespace ZxcBank.Infrastructure.Identity;
 
@@ -11,15 +12,18 @@ public class IdentityService : IIdentityService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserClaimsPrincipalFactory<ApplicationUser> _userClaimsPrincipalFactory;
     private readonly IAuthorizationService _authorizationService;
+    private readonly JwtTokenGenerator _tokenGenerator;
 
     public IdentityService(
         UserManager<ApplicationUser> userManager,
         IUserClaimsPrincipalFactory<ApplicationUser> userClaimsPrincipalFactory,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        JwtTokenGenerator tokenGenerator)
     {
         _userManager = userManager;
         _userClaimsPrincipalFactory = userClaimsPrincipalFactory;
         _authorizationService = authorizationService;
+        _tokenGenerator = tokenGenerator;
     }
 
     public async Task<string?> GetUserNameAsync(string userId)
@@ -35,6 +39,7 @@ public class IdentityService : IIdentityService
         {
             UserName = userName,
             Email = userName,
+            NormalizedEmail = userName.ToUpperInvariant(),
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -77,5 +82,34 @@ public class IdentityService : IIdentityService
         var result = await _userManager.DeleteAsync(user);
 
         return result.ToApplicationResult();
+    }
+    
+    public async Task<Result> AddToRoleAsync(string userId, string role)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+    
+        // Если не нашли - ошибка
+        if (user == null)
+        {
+            return Result.Failure(new[] { "User not found" });
+        }
+
+        // 2. Добавляем роль через UserManager (стандартный класс .NET Identity)
+        IdentityResult result = await _userManager.AddToRoleAsync(user, role);
+
+        // 3. Преобразуем результат в формат вашего приложения
+        return result.ToApplicationResult();
+    }
+    
+    public async Task<string?> LoginAsync(string email, string password)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null) return null;
+
+        var result = await _userManager.CheckPasswordAsync(user, password);
+        if (!result) return null;
+
+        // Генерируем JWT с ролями!
+        return await _tokenGenerator.GenerateTokenAsync(user);
     }
 }
