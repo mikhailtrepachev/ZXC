@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using ZxcBank.Domain.Entities;
 using ZxcBank.Infrastructure.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Serilog;
 using ZxcBank.Infrastructure.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -21,7 +22,11 @@ public static class DependencyInjection
 {
     public static void AddInfrastructureServices(this IHostApplicationBuilder builder)
     {
-        var connectionString = builder.Configuration.GetConnectionString("ZxcBankDb");
+        var infrastructureLogger = Log.ForContext("Layer", "Infrastructure");
+
+        infrastructureLogger.Information("Startup infrastructure layer...");
+        
+        string? connectionString = builder.Configuration.GetConnectionString("ZxcBankDb");
         Guard.Against.Null(connectionString, message: "Connection string 'ZxcBankDb' not found.");
         
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -83,5 +88,6 @@ public static class DependencyInjection
                 };
             });
         
+        infrastructureLogger.Information("Infrastructure layer successfully registered!");
     }
 }
