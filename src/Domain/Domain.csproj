@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>ZxcBank.Domain</RootNamespace>
     <AssemblyName>ZxcBank.Domain</AssemblyName>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,12 @@
 
   <ItemGroup>
     <Folder Include="Events\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 
 </Project>

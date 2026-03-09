@@ -41,7 +41,6 @@ public class ApplicationDbContextInitialiser
     {
         try
         {
-            // See https://jasontaylor.dev/ef-core-database-initialisation-strategies
             await _context.Database.EnsureDeletedAsync();
             await _context.Database.EnsureCreatedAsync();
         }
@@ -68,7 +67,7 @@ public class ApplicationDbContextInitialiser
     public async Task TrySeedAsync()
     {
         // 1. Создание Ролей
-        var roles = new[] { Roles.Administrator, Roles.Client, Roles.Manager };
+        string[] roles = new[] { Roles.Administrator, Roles.Client, Roles.Manager };
         foreach (var roleName in roles)
         {
             if (roleName != null && !await _roleManager.RoleExistsAsync(roleName))

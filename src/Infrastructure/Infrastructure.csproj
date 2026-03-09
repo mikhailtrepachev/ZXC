@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>ZxcBank.Infrastructure</RootNamespace>
     <AssemblyName>ZxcBank.Infrastructure</AssemblyName>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,6 +32,12 @@
 
   <ItemGroup>
     <Folder Include="Data\Configurations\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 
 </Project>
