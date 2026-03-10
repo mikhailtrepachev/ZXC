@@ -14,6 +14,36 @@ services:
         - pgdata:/var/lib/postgresql/data
       restart: unless-stopped
 
+  pgadmin:
+      image: dpage/pgadmin4
+      container_name: pgadmin
+      environment:
+          PGADMIN_DEFAULT_EMAIL: admin@zxcbank.com
+          PGADMIN_DEFAULT_PASSWORD: admin
+      ports:
+        - "5050:80"
+      depends_on:
+        - db
+      restart: unless-stopped
+
+  redis:
+      image: redis:7-alpine
+      container_name: redis
+      ports:
+        - "6379:6379"
+      restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_mb
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # Порт для подключения из .NET кода
+      - "15672:15672" # Порт для веб-интерфейса управления
+    restart: unless-stopped
+
   seq:
     image: datalust/seq:latest
     container_name: seq_logs
@@ -31,12 +61,21 @@ services:
       container_name: backend_server
       environment:
       - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=zxcbank_db;Username=postgres;Password=postgres;
+      # Подключение к Redis (Host совпадает с именем сервиса)
+      - ConnectionStrings__Redis=redis:6379
+      # Подключение к RabbitMQ
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672/
+      - SEQ_URL=http://seq:80
+
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       ports:
             - "8080:8080"
       depends_on:
         - db
+        - redis
+        - rabbitmq
+        - seq
       restart: unless-stopped
   frontend:
       build: 
