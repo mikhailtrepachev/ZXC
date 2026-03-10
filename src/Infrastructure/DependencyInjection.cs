@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using MassTransit;
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Constants;
 using ZxcBank.Infrastructure.Data;
@@ -87,6 +88,26 @@ public static class DependencyInjection
                         Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
                 };
             });
+
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = builder.Configuration.GetConnectionString("Redis");
+
+        });
+        
+        builder.Services.AddTransient<ICacheService, RedisCacheService>();
+        
+        builder.Services.AddMassTransit(x =>
+        {
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(builder.Configuration.GetConnectionString("RabbitMq"));
+            
+                cfg.ConfigureEndpoints(context);
+            });
+        });
+        
+        builder.Services.AddTransient<IEventPublisher, RabbitMqEventPublisher>();
         
         infrastructureLogger.Information("Infrastructure layer successfully registered!");
     }

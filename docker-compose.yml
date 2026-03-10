@@ -55,28 +55,26 @@ services:
     restart: unless-stopped
 
   backend:
-      build:
-          context: .
-          dockerfile: Dockerfile.backend
-      container_name: backend_server
-      environment:
-      - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=zxcbank_db;Username=postgres;Password=postgres;
-      # Подключение к Redis (Host совпадает с именем сервиса)
-      - ConnectionStrings__Redis=redis:6379
-      # Подключение к RabbitMQ
-      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672/
-      - SEQ_URL=http://seq:80
+        build:
+            context: .
+            dockerfile: Dockerfile.backend
+        container_name: backend_server
+        environment:
+          - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=zxcbank_db;Username=postgres;Password=postgres;
+          - ConnectionStrings__Redis=redis:6379
+          - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672/
+          - SEQ_URL=http://seq:80
+          - ASPNETCORE_ENVIRONMENT=Development
+          - ASPNETCORE_URLS=http://+:8080
+        ports:
+          - "8080:8080"
+        depends_on:
+          - db
+          - redis
+          - rabbitmq
+          - seq
+        restart: unless-stopped
 
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
-      ports:
-            - "8080:8080"
-      depends_on:
-        - db
-        - redis
-        - rabbitmq
-        - seq
-      restart: unless-stopped
   frontend:
       build: 
           context: ./src/Web/clientApp
