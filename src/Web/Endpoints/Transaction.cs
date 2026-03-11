@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using ZxcBank.Application.Transaction;
-using ZxcBank.Application.Transactions.Commands.TransferMoney;
 
 namespace ZxcBank.Web.Endpoints;
 

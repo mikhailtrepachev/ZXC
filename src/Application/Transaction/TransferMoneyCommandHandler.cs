@@ -1,11 +1,8 @@
-﻿using System.Reflection;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Extensions.Logging;
 using ZxcBank.Application.Common.Interfaces;
-using ZxcBank.Application.Transaction;
 using ZxcBank.Domain.Entities;
 
-namespace ZxcBank.Application.Transactions.Commands.TransferMoney;
+namespace ZxcBank.Application.Transaction;
 
 public record TransferMoneyCommand : IRequest<int>
 {
@@ -21,17 +18,23 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
     private readonly IUser _currentUser;
     private readonly ICurrencyService _currencyService;
     private readonly IEventPublisher _eventPublisher;
+    private readonly ICacheService _cacheService;
+    private readonly ILogger<TransferMoneyCommandHandler> _logger;
 
     public TransferMoneyCommandHandler(
         IApplicationDbContext context,
         IUser currentUser,
         ICurrencyService currencyService,
-        IEventPublisher eventPublisher)
+        IEventPublisher eventPublisher,
+        ICacheService cacheService,
+        ILogger<TransferMoneyCommandHandler> logger)
     {
         _context = context;
         _currentUser = currentUser;
         _currencyService = currencyService;
-        _eventPublisher = eventPublisher;       
+        _eventPublisher = eventPublisher;
+        _cacheService = cacheService; 
+        _logger = logger;
     }
 
     public async Task<int> Handle(TransferMoneyCommand request, CancellationToken cancellationToken)
@@ -47,6 +50,20 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
         {
             throw new UnauthorizedAccessException();
         }
+        
+        string lockKey = $"transfer_lock_{userId}_{request.ToAccountNumber}_{request.Amount}";
+        
+        bool isProcessing = await _cacheService.GetValueTask<bool>(lockKey, cancellationToken);
+
+        if (isProcessing)
+        {
+            _logger.LogWarning("Double money transfer request has been detected {UserId}", userId);
+            throw new Exception("Váš převod se právě zpracovává. Prosím, vyčkejte několik sekund.");
+        }
+        
+        // we will set the lock in redis for 3 seconds for the current money transfer
+        await _cacheService.SetValueTask(
+            lockKey, true, TimeSpan.FromSeconds(3), cancellationToken);
 
         Client? client = await _context.Clients
             .Include(c => c.Accounts)
@@ -54,6 +71,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
 
         if (client == null)
         {
+            _logger.LogError("Client not found for user {UserId}", userId);
             throw new Exception("Profil klienta nebyl nalezen.");
         }
 
@@ -63,23 +81,24 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
 
         if (senderAccount == null)
         {
+            _logger.LogError("Sender account not found for user {UserId}", userId);
             throw new Exception("Ucet pro odepsani nebyl nalezen nebo vam nepatri.");
         }
 
         if (senderAccount.IsFrozen)
         {
+            _logger.LogInformation("Sender account is frozen for user {UserId}", userId);
             throw new Exception("Vas ucet je zablokovan. Kontaktujte podporu.");
         }
 
         if (senderAccount.Balance < request.Amount)
         {
+            _logger.LogInformation("Insufficient funds for user {UserId}", userId);
             throw new Exception("Na uctu neni dostatek prostredku.");
         }
 
         DateTime startOfDay = DateTime.UtcNow.Date;
-
-        // Собираем номера (или ID) всех счетов клиента, чтобы посчитать общие траты
-        // Предполагаем, что в Transactions вы храните AccountNumber (string)
+        
         List<string> clientAccountNumbers = client.Accounts.Select(a => a.AccountNumber).ToList();
 
         decimal spentToday = await _context.Transactions
@@ -88,6 +107,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
 
         if (spentToday + request.Amount > client.DailyTransferLimit)
         {
+            _logger.LogInformation("Daily transfer limit exceeded for user {UserId}", userId);
             throw new Exception($"Prekrocen denni limit. Vas limit: {client.DailyTransferLimit}. Dnes utraceno: {spentToday}.");
         }
 
@@ -97,11 +117,13 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
 
         if (receiverAccount == null)
         {
+            _logger.LogError("Receiver account not found for user {UserId}", userId);
             throw new Exception("Ucet prijemce nebyl nalezen.");
         }
 
         if (receiverAccount.IsFrozen)
         {
+            _logger.LogInformation("Receiver account is frozen for user {UserId}", userId);
             throw new Exception("Ucet prijemce je zablokovan.");
         }
 
@@ -114,6 +136,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
         string normalizedMessage = (request.Message ?? string.Empty).Trim();
         if (normalizedMessage.Length > 140)
         {
+            _logger.LogInformation("Message length exceeds limit for user {UserId}", userId);
             throw new Exception("Zprava k prevodu muze mit maximalne 140 znaku.");
         }
 
@@ -154,7 +177,7 @@ public class TransferMoneyCommandHandler : IRequestHandler<TransferMoneyCommand,
             SenderId: userId,
             ReceiverId: receiverAccount.Client.UserId,
             Amount: request.Amount,
-            Message: request.Message ?? string.Empty,
+            Message: description,
             Timestamp: DateTime.UtcNow
         ), cancellationToken);
         
