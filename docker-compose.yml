@@ -49,7 +49,7 @@ services:
     container_name: seq_logs
     environment:
       - ACCEPT_EULA=Y
-      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
+      - SEQ_FIRSTRUN_ADMINPASSWORD=DontFuckMyBrainAndTakeThisPassword!10
     ports:
       - "5341:80"
     restart: unless-stopped

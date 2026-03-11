@@ -17,4 +17,6 @@ public interface IIdentityService
     Task<Result> AddToRoleAsync(string userId, string role);
 
     Task<string?> LoginAsync(string email, string password);
+    
+    Task<string?> GetUserIdByEmailAsync(string email);
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Application.Common.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -28,58 +29,58 @@ public class IdentityService : IIdentityService
 
     public async Task<string?> GetUserNameAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user?.UserName;
     }
 
     public async Task<(Result Result, string UserId)> CreateUserAsync(string userName, string password)
     {
-        var user = new ApplicationUser
+        ApplicationUser user = new ApplicationUser
         {
             UserName = userName,
             Email = userName,
             NormalizedEmail = userName.ToUpperInvariant(),
         };
 
-        var result = await _userManager.CreateAsync(user, password);
+        IdentityResult result = await _userManager.CreateAsync(user, password);
 
         return (result.ToApplicationResult(), user.Id);
     }
 
     public async Task<bool> IsInRoleAsync(string userId, string role)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user != null && await _userManager.IsInRoleAsync(user, role);
     }
 
     public async Task<bool> AuthorizeAsync(string userId, string policyName)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         if (user == null)
         {
             return false;
         }
 
-        var principal = await _userClaimsPrincipalFactory.CreateAsync(user);
+        ClaimsPrincipal principal = await _userClaimsPrincipalFactory.CreateAsync(user);
 
-        var result = await _authorizationService.AuthorizeAsync(principal, policyName);
+        AuthorizationResult result = await _authorizationService.AuthorizeAsync(principal, policyName);
 
         return result.Succeeded;
     }
 
     public async Task<Result> DeleteUserAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user != null ? await DeleteUserAsync(user) : Result.Success();
     }
 
     public async Task<Result> DeleteUserAsync(ApplicationUser user)
     {
-        var result = await _userManager.DeleteAsync(user);
+        IdentityResult result = await _userManager.DeleteAsync(user);
 
         return result.ToApplicationResult();
     }
@@ -103,13 +104,20 @@ public class IdentityService : IIdentityService
     
     public async Task<string?> LoginAsync(string email, string password)
     {
-        var user = await _userManager.FindByEmailAsync(email);
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
         if (user == null) return null;
 
-        var result = await _userManager.CheckPasswordAsync(user, password);
+        bool result = await _userManager.CheckPasswordAsync(user, password);
         if (!result) return null;
 
         // Генерируем JWT с ролями!
         return await _tokenGenerator.GenerateTokenAsync(user);
+    }
+
+    public async Task<string?> GetUserIdByEmailAsync(string email)
+    {
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
+
+        return user?.Id;
     }
 }
