@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using ZxcBank.Application.Account;
 using ZxcBank.Application.Auth.Commands;
@@ -19,8 +20,28 @@ public class Clients : EndpointGroupBase
         return await sender.Send(command);
     }
 
-    public async Task<string> Login(ISender sender, [FromBody] LoginCommand command)
+    public async Task<string> Login(ISender sender, HttpContext context, [FromBody] LoginRequestDto request)
     {
+        string ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+        string deviceInfo = context.Request.Headers.UserAgent.ToString();
+
+        if (string.IsNullOrWhiteSpace(deviceInfo))
+        {
+            deviceInfo = "Unknown Device";
+        }
+
+        string location = "Unknown location";
+
+        LoginCommand command = new LoginCommand
+        {
+            Email = request.Email,
+            Password = request.Password,
+            IpAddress = ipAddress,
+            DeviceInfo = deviceInfo,
+            Location = location
+        };
+        
         return await sender.Send(command);
     }
 

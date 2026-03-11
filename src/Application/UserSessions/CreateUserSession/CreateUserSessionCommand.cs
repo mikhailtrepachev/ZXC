@@ -27,11 +27,11 @@ public class CreateUserSessionCommandHandler : IRequestHandler<CreateUserSession
 
     public async Task<int> Handle(CreateUserSessionCommand request, CancellationToken cancellationToken)
     {
-        var userId = _user.Id ?? throw new UnauthorizedAccessException("Token nebyl nalezen");
+        string userId = _user.Id ?? throw new UnauthorizedAccessException("Token nebyl nalezen");
 
         // ШАГ 1: Ищем самую последнюю сессию этого пользователя в базе
         // Сортируем по Id по убыванию, чтобы первой оказалась самая свежая запись
-        var lastSession = await _context.UserSessions
+        UserSession? lastSession = await _context.UserSessions
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.Id)
             .FirstOrDefaultAsync(cancellationToken);
@@ -46,7 +46,7 @@ public class CreateUserSessionCommandHandler : IRequestHandler<CreateUserSession
             if (isSuspicious)
             {
                 // Создаем тревожное уведомление!
-                var notification = new Notification
+                Notification notification = new Notification
                 {
                     UserId = userId,
                     Message = $"Podezřelý přístup! Zaznamenáno nové zařízení v: { request.Location } (IP: { request.IpAddress }). Předchozí přístup byl z: { lastSession.Location }.",
@@ -59,7 +59,7 @@ public class CreateUserSessionCommandHandler : IRequestHandler<CreateUserSession
         }
 
         // ШАГ 3: Создаем новую сессию в любом случае
-        var newSession = new UserSession
+        UserSession newSession = new UserSession
         {
             UserId = userId,
             DeviceInfo = request.DeviceInfo,

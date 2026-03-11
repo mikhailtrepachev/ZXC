@@ -1,6 +1,9 @@
 using ZxcBank.Infrastructure.Data;
 using Scalar.AspNetCore;
 using Serilog;
+using ZxcBank.Application.Common.Interfaces;
+using ZxcBank.Web.Hubs;
+using ZxcBank.Web.Services;
 
 const string consoleTemplate = "[{Timestamp:HH:mm:ss} {Level:u3}] [{Layer}{SourceContext}] - {Message:lj}{NewLine}{Exception}";
 
@@ -25,6 +28,9 @@ try
     builder.AddInfrastructureServices();
     builder.AddWebServices();
     builder.Host.UseSerilog();
+    builder.Services.AddSignalR();
+    
+    builder.Services.AddTransient<INotificationService, SignalRNotificationService>();
 
     var app = builder.Build();
 
@@ -48,7 +54,7 @@ try
 
 
     app.UseExceptionHandler(options => { });
-
+    app.MapHub<NotificationHub>("/hubs/notifications");
     app.Map("/", () => Results.Redirect("/scalar"));
 
     app.MapEndpoints();

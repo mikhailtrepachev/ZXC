@@ -3,6 +3,7 @@ using ZxcBank.Domain.Entities;
 using ZxcBank.Domain.Constants;
 using ZxcBank.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using ZxcBank.Application.Common.Models; // Не забудьте этот using для IRequestHandler
 
 namespace ZxcBank.Application.Auth.Commands;
@@ -27,11 +28,13 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
 {
     private readonly IIdentityService _identityService;
     private readonly IApplicationDbContext _context;
+    private readonly ILogger<RegisterClientCommandHandler> _logger;
 
-    public RegisterClientCommandHandler(IIdentityService identityService, IApplicationDbContext context)
+    public RegisterClientCommandHandler(IIdentityService identityService, IApplicationDbContext context, ILogger<RegisterClientCommandHandler> logger)
     {
         _identityService = identityService;
         _context = context;
+        _logger = logger;
     }
 
     public async Task<string> Handle(RegisterClientCommand request, CancellationToken cancellationToken)
@@ -41,6 +44,7 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
 
         if (!result.Succeeded)
         {
+            _logger.LogError("Registration failed: {Errors}", string.Join(", ", result.Errors));   
             throw new Exception($"Registration error: {string.Join(", ", result.Errors)}");
         }
 
@@ -48,7 +52,7 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
         await _identityService.AddToRoleAsync(userId, Roles.Client); 
 
         // 3. Создаем профиль Клиента
-        var clientEntity = new Client
+        Client clientEntity = new Client
         {
             UserId = userId,
             
@@ -64,15 +68,17 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
 
         // 4. Генерируем счета и КЛАДЕМ ИХ ВНУТРЬ КЛИЕНТА
         // EF Core сам поймет, что эти счета принадлежат этому клиенту и проставит ClientId
-        var accounts = CreateAccounts(userId);
+        List<Domain.Entities.Account> accounts = CreateAccounts(userId);
         
-        foreach (var account in accounts)
+        foreach (Domain.Entities.Account account in accounts)
         {
             clientEntity.Accounts.Add(account);
         }
 
         // 5. Добавляем только Клиента (счета добавятся каскадно)
         _context.Clients.Add(clientEntity);
+        
+        _logger.LogInformation("User {UserId} registered", userId);
         
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -81,7 +87,7 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
     
     private List<Domain.Entities.Account> CreateAccounts(string userId)
     {
-        var accounts = new List<Domain.Entities.Account>();
+        List<Domain.Entities.Account> accounts = new List<Domain.Entities.Account>();
 
         // CZK (Koruna)
         accounts.Add(new Domain.Entities.Account

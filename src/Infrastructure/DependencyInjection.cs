@@ -15,6 +15,7 @@ using ZxcBank.Domain.Entities;
 using ZxcBank.Infrastructure.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
+using ZxcBank.Infrastructure.Consumers;
 using ZxcBank.Infrastructure.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -99,6 +100,10 @@ public static class DependencyInjection
         
         builder.Services.AddMassTransit(x =>
         {
+            x.AddConsumer<UserLoggedInConsumer>();
+            x.AddConsumer<SuspiciousActivityConsumer>();
+            x.AddConsumer<TransferMoneyConsumer>();
+            
             x.UsingRabbitMq((context, cfg) =>
             {
                 cfg.Host(builder.Configuration.GetConnectionString("RabbitMq"));

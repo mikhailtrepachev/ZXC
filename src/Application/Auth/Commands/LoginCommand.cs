@@ -9,6 +9,10 @@ public record LoginCommand : IRequest<string>
 {
     public required string Email { get; init; }
     public required string Password { get; init; }
+    
+    public required string DeviceInfo { get; init; }
+    public required string IpAddress { get; init; }
+    public required string Location { get; init; }
 }
 
 public class LoginCommandHandler : IRequestHandler<LoginCommand, string>
@@ -56,7 +60,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, string>
         await _cacheService.RemoveAsync(cacheKey, cancellationToken);
 
         await _eventPublisher.PublishAsync(
-            new UserLoggedInEvent(Email: request.Email, TimeStamp: DateTime.UtcNow), cancellationToken);
+            new UserLoggedInEvent(
+                Email: request.Email, 
+                TimeStamp: DateTime.UtcNow, 
+                IpAddress: request.IpAddress,
+                Location: request.Location,
+                DeviceInfo: request.DeviceInfo), cancellationToken);
         
         _logger.LogInformation("Login successful: {AttemptedEmail}", request.Email);
 
