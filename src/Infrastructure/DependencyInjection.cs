@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using MassTransit;
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Constants;
@@ -14,6 +15,8 @@ using Microsoft.IdentityModel.Tokens;
 using ZxcBank.Domain.Entities;
 using ZxcBank.Infrastructure.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using Serilog;
 using ZxcBank.Infrastructure.Consumers;
 using ZxcBank.Infrastructure.Services;
@@ -69,7 +72,7 @@ public static class DependencyInjection
         
         builder.Services.AddMemoryCache();
         builder.Services.AddHttpClient<ICurrencyService, RealCurrencyService>();
-        
+
         builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -87,6 +90,51 @@ public static class DependencyInjection
                     ValidAudience = builder.Configuration["JwtSettings:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    // МАГИЯ 1: Проверка Blacklist в Redis при каждом запросе
+                    OnTokenValidated = async context =>
+                    {
+                        // Запрашиваем ICacheService из контейнера DI текущего HTTP-запроса
+                        ICacheService cacheService = context.HttpContext.RequestServices.GetRequiredService<ICacheService>();
+
+                        string token = context.SecurityToken switch
+                        {
+                            JwtSecurityToken jwt => jwt.RawData,
+                            Microsoft.IdentityModel.JsonWebTokens.JsonWebToken jwt => jwt.EncodedToken,
+                            _ => string.Empty
+                        };
+
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            string cacheKey = $"blacklist_{token}";
+                            bool isBlacklisted = await cacheService.GetValueTask<bool>(cacheKey, context.HttpContext.RequestAborted);
+                    
+                            if (isBlacklisted)
+                            {
+                                infrastructureLogger.Warning("Someone used the token from blacklist: {Token}", token);
+                                context.Fail("Tento token byl odhlášen (Blacklisted).");
+                            }
+                        }
+                    },
+
+                    // МАГИЯ 2: Поддержка авторизации для SignalR (WebSockets)
+                    OnMessageReceived = context =>
+                    {
+                        StringValues accessToken = context.Request.Query["access_token"];
+                        PathString path = context.HttpContext.Request.Path;
+
+                        // Если запрос идет к нашему SignalR Хабу и токен есть в URL
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/notifications"))
+                        {
+                            // Подсовываем токен пайплайну авторизации
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

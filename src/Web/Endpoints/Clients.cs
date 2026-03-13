@@ -13,6 +13,7 @@ public class Clients : EndpointGroupBase
         group.MapPost("login", Login);
         group.MapPost("update-info", UpdateClientInfo);
         group.MapPost("limits", UpdateLimits);
+        group.MapPost("logout", LogoutUser).RequireAuthorization();
     }
 
     public async Task<string> RegisterClient(ISender sender, [FromBody] RegisterClientCommand command)
@@ -55,5 +56,26 @@ public class Clients : EndpointGroupBase
     {
         await sender.Send(command);
         return Results.Ok();
+    }
+
+    public async Task<IResult> LogoutUser(ISender sender, HttpContext context)
+    {
+        string authHeader = context.Request.Headers.Authorization.ToString();
+
+        if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
+        {
+            return Results.BadRequest("Invalid token");
+        }
+        
+        string token = authHeader.Substring("Bearer ".Length).Trim();
+
+        bool result = await sender.Send(new LogoutCommand(token));
+
+        if (result)
+        {
+            return Results.Ok("Successfully logged out");
+        }
+        
+        return Results.BadRequest("Failed to logout");
     }
 }
