@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Enums;
 
@@ -15,21 +16,17 @@ public class ExchangeRateResponse
 public class RealCurrencyService : ICurrencyService
 {
     private readonly HttpClient _httpClient;
-    private readonly IMemoryCache _cache;
+    private readonly ICacheService _cache;
+    private readonly ILogger<RealCurrencyService> _logger;
+    
+    // 1% bank margin
+    private const decimal BankMarginMultiplier = 1.01m;
 
-    // Conservative fallback rates for offline mode.
-    private static readonly IReadOnlyDictionary<string, decimal> FallbackRateToCzk =
-        new Dictionary<string, decimal>
-        {
-            ["CZK"] = 1m,
-            ["EUR"] = 25m,
-            ["USD"] = 23m,
-        };
-
-    public RealCurrencyService(HttpClient httpClient, IMemoryCache cache)
+    public RealCurrencyService(HttpClient httpClient, ICacheService cache, ILogger<RealCurrencyService> logger)
     {
         _httpClient = httpClient;
         _cache = cache;
+        _logger = logger;
     }
 
     public async Task<decimal> ConvertAsync(decimal amount, Currency from, Currency to)
@@ -41,54 +38,46 @@ public class RealCurrencyService : ICurrencyService
 
         string fromCode = MapCurrencyCode(from);
         string toCode = MapCurrencyCode(to);
-        string cacheKey = $"rate_{fromCode}_{toCode}";
-
-        if (_cache.TryGetValue(cacheKey, out decimal cachedRate))
-        {
-            return amount * cachedRate;
-        }
-
-        var liveRate = await TryGetLiveRateAsync(fromCode, toCode);
-        if (liveRate.HasValue)
-        {
-            _cache.Set(cacheKey, liveRate.Value, TimeSpan.FromHours(1));
-            return amount * liveRate.Value;
-        }
-
-        var fallbackRate = GetFallbackRate(fromCode, toCode);
-        _cache.Set(cacheKey, fallbackRate, TimeSpan.FromMinutes(10));
-        return amount * fallbackRate;
+        
+        decimal baseRate = await GetLiveRateAsync(fromCode, toCode);
+        
+        decimal rateWithMargin = baseRate * BankMarginMultiplier;
+        
+        decimal convertedAmount = amount * rateWithMargin;
+        
+        return Math.Round(convertedAmount, 2, MidpointRounding.ToEven);
     }
-
-    private async Task<decimal?> TryGetLiveRateAsync(string fromCode, string toCode)
+    
+    private async Task<decimal> GetLiveRateAsync(string fromCode, string toCode)
     {
+        string cacheKey = $"exchange_rate_{fromCode}_{toCode}";
+
+        decimal? cachedRate = await _cache.GetValueTask<decimal?>(cacheKey, CancellationToken.None);
+        
+        if (cachedRate.HasValue && cachedRate.Value > 0)
+        {
+            return cachedRate.Value;
+        }
+
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<ExchangeRateResponse>(
+            ExchangeRateResponse? response = await _httpClient.GetFromJsonAsync<ExchangeRateResponse>(
                 $"https://api.frankfurter.app/latest?from={fromCode}&to={toCode}");
 
-            if (response != null && response.Rates.TryGetValue(toCode, out var rate) && rate > 0)
+            if (response != null && response.Rates.TryGetValue(toCode, out decimal rate) && rate > 0)
             {
+                await _cache.SetValueTask(cacheKey, rate, TimeSpan.FromHours(1), CancellationToken.None);
                 return rate;
             }
+            
+            _logger.LogError("Error on API response from frankfurter");
+            throw new Exception("API vrátilo neplatná nebo prázdná data.");
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore network/API errors and fall back to static rates.
+            _logger.LogError(ex, "Nepodařilo se získat kurz pro {FromCode}/{ToCode} z externího API", fromCode, toCode);
+            throw new Exception("Služba pro převody měn je momentálně nedostupná. Zkuste to prosím později.");
         }
-
-        return null;
-    }
-
-    private static decimal GetFallbackRate(string fromCode, string toCode)
-    {
-        if (!FallbackRateToCzk.TryGetValue(fromCode, out var fromToCzk) ||
-            !FallbackRateToCzk.TryGetValue(toCode, out var toToCzk))
-        {
-            throw new Exception($"Nelze urcit konverzni kurz pro par {fromCode}/{toCode}.");
-        }
-
-        return fromToCzk / toToCzk;
     }
 
     private static string MapCurrencyCode(Currency currency)
