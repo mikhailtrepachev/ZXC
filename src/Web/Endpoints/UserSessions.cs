@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using ZxcBank.Application.UserSessions.CreateUserSession;
 using ZxcBank.Application.UserSessions.Queries.GetUserSessions; // Добавили using для запроса
 
 namespace ZxcBank.Web.Endpoints;

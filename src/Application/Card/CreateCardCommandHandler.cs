@@ -3,6 +3,7 @@ using ZxcBank.Application.Common.Interfaces;
 using ZxcBank.Domain.Entities;
 using MediatR; // Не забудь добавить
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ZxcBank.Application.Cards.Commands.CreateCard;
 
@@ -20,55 +21,75 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
     private readonly IUser _currentUser;
     private readonly IPasswordHasher<Card> _passwordHasher;
     private readonly IIdentityService _identityService;
+    private readonly ILogger<CreateCardCommandHandler> _logger;
+    private readonly ICacheService _cacheService;
 
     public CreateCardCommandHandler(
         IApplicationDbContext context, 
         IUser currentUser, 
         IPasswordHasher<Card> passwordHasher,
-        IIdentityService identityService)
+        IIdentityService identityService,
+        ILogger<CreateCardCommandHandler> logger,
+        ICacheService cacheService)
     {
         _context = context;
         _currentUser = currentUser;
         _passwordHasher = passwordHasher;
         _identityService = identityService;
+        _logger = logger;
+        _cacheService = cacheService;
     }
 
     public async Task<int> Handle(CreateCardCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUser.Id;
+        string? userId = _currentUser.Id;
         if (userId == null) throw new UnauthorizedAccessException();
 
         // Ищем счет, который принадлежит текущему юзеру И имеет указанный номер
-        var account = await _context.Accounts
+        Domain.Entities.Account? account = await _context.Accounts
             .FirstOrDefaultAsync(a => a.OwnerId == userId && a.AccountNumber == request.AccountNumber, cancellationToken);
 
         if (account == null) 
         {
-            // Важно не говорить "Счет чужой", лучше просто "Не найден" для безопасности
+            _logger.LogError("Účet s číslem {AccountNumber} nebyl nalezen", request.AccountNumber);
             throw new Exception($"Účet s číslem {request.AccountNumber} nebyl nalezen.");
         }
 
-        // 2. Проверка лимита (3 карты на один счет)
-        var existingCardsCount = await _context.Cards
+        int existingCardsCount = await _context.Cards
             .CountAsync(c => c.AccountId == account.Id && c.IsActive, cancellationToken);
 
         if (existingCardsCount >= 3)
         {
+            _logger.LogInformation("Pro účet {UserId} byl dosažen limit karet (maximálně 3)", userId);
             throw new Exception("Pro tento účet byl dosažen limit karet (maximálně 3).");
         }
 
-        var client = await _context.Clients
+        Client? client = await _context.Clients
             .FirstOrDefaultAsync(a => a.UserId == userId);
 
-        if (client is null )
+        if (client is null)
         {
+            _logger.LogError("Client {ClientId} nebyl nalezen", userId);
             throw new Exception("Nebyl nalezen klient");
         }
 
-        var fullName = $"{client.LastName} {client.FirstName}";
+        string? fullName = $"{client.LastName} {client.FirstName}";
+        
+        string lockKey = $"card_creation_lock_{userId}_{request.AccountNumber}";
+        
+        bool isProcessing = await _cacheService.GetValueTask<bool>(lockKey, cancellationToken);
 
-        // 4. Создаем карту
-        var card = new Card
+        if (isProcessing)
+        {
+            _logger.LogWarning("Double card creation has been detected: {UserId}", userId);
+            throw new Exception("Vase karta se prave zpracovava, pockejte prosim nekolik sekund");
+        }
+        
+        // we will set the lock in redis for 3 seconds for the current money transfer
+        await _cacheService.SetValueTask(
+            lockKey, true, TimeSpan.FromSeconds(3), cancellationToken);
+
+        Card card = new Card
         {
             AccountId = account.Id, // Привязываем к найденному ID
             CardHolderName = (fullName ?? "CLIENT").ToUpper(),
@@ -90,8 +111,8 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
 
     private string GenerateCardNumber()
     {
-        var rnd = new Random();
-        // 4200 - Visa Classic
+        Random rnd = new Random();
+        
         return $"4200{rnd.Next(1000, 9999)}{rnd.Next(1000, 9999)}{rnd.Next(1000, 9999)}";
     }
 }
