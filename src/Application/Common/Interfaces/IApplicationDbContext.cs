@@ -11,5 +11,7 @@ public interface IApplicationDbContext
     DbSet<UserSession> UserSessions { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<Card> Cards { get; }
+    DbSet<Stock> Stocks { get; }
+    DbSet<Portfolio> Portfolios { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

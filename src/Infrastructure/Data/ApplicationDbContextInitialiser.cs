@@ -241,5 +241,23 @@ public class ApplicationDbContextInitialiser
             _context.Clients.Add(receiverClient);
             await _context.SaveChangesAsync();
         }
+
+        if (!_context.Stocks.Any())
+        {
+            _context.Stocks.AddRange(new List<Stock>
+            {
+                new Stock { TickerName = "AAPL", CompanyName = "Apple Inc.", Price = 175.50M },
+                new Stock { TickerName = "MSFT", CompanyName = "Microsoft Corp.", Price = 330.20M },
+                new Stock { TickerName = "GOOGL", CompanyName = "Alphabet Inc.", Price = 135.40M },
+                new Stock { TickerName = "AMZN", CompanyName = "Amazon.com Inc.", Price = 125.80M },
+                new Stock { TickerName = "TSLA", CompanyName = "Tesla Inc.", Price = 240.60M },
+                new Stock { TickerName = "META", CompanyName = "Meta Platforms Inc.", Price = 295.10M },
+                new Stock { TickerName = "NVDA", CompanyName = "NVIDIA Corp.", Price = 420.30M },
+                new Stock { TickerName = "JPM", CompanyName = "JPMorgan Chase & Co.", Price = 145.90M },
+                new Stock { TickerName = "V", CompanyName = "Visa Inc.", Price = 230.15M },
+                new Stock { TickerName = "WMT", CompanyName = "Walmart Inc.", Price = 160.25M }
+            });
+            await _context.SaveChangesAsync();
+        }
     }
 }
