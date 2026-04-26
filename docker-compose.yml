@@ -42,6 +42,12 @@ services:
     ports:
       - "5672:5672"   # Порт для подключения из .NET кода
       - "15672:15672" # Порт для веб-интерфейса управления
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   seq:
@@ -69,10 +75,14 @@ services:
         ports:
           - "8080:8080"
         depends_on:
-          - db
-          - redis
-          - rabbitmq
-          - seq
+          rabbitmq:
+            condition: service_healthy
+          db:
+            condition: service_started
+          redis:
+            condition: service_started
+          seq:
+            condition: service_started
         restart: unless-stopped
 
   frontend:
