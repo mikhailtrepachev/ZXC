@@ -72,6 +72,7 @@ public static class DependencyInjection
         
         builder.Services.AddMemoryCache();
         builder.Services.AddHttpClient<ICurrencyService, RealCurrencyService>();
+        builder.Services.AddHttpClient<IStockService, YahooFinanceStockService>();
 
         builder.Services.AddAuthentication(options =>
             {

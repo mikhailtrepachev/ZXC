@@ -15,7 +15,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Manager> Managers => Set<Manager>();
     public DbSet<Child> Children => Set<Child>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
-
+    public DbSet<Stock> Stocks => Set<Stock>();
+    public DbSet<Portfolio> Portfolios => Set<Portfolio>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Card> Cards => Set<Card>();
