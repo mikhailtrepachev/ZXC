@@ -3,6 +3,10 @@ const REFRESH_TOKEN_KEY = "zxc_refresh_token";
 const USER_PROFILES_KEY = "zxc_user_profiles";
 const CARD_PINS_KEY = "zxc_card_pins";
 
+function canUseStorage() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
 function decodeJwtPayload(token) {
   if (!token || typeof token !== "string") {
     return null;
@@ -42,6 +46,10 @@ function isPayloadExpired(payload) {
 }
 
 export function getAccessToken() {
+  if (!canUseStorage()) {
+    return null;
+  }
+
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
@@ -50,6 +58,10 @@ function normalizeEmail(value) {
 }
 
 function readUserProfiles() {
+  if (!canUseStorage()) {
+    return {};
+  }
+
   try {
     const raw = localStorage.getItem(USER_PROFILES_KEY);
     if (!raw) {
@@ -64,10 +76,18 @@ function readUserProfiles() {
 }
 
 function writeUserProfiles(map) {
+  if (!canUseStorage()) {
+    return;
+  }
+
   localStorage.setItem(USER_PROFILES_KEY, JSON.stringify(map));
 }
 
 function readCardPins() {
+  if (!canUseStorage()) {
+    return {};
+  }
+
   try {
     const raw = localStorage.getItem(CARD_PINS_KEY);
     if (!raw) {
@@ -82,6 +102,10 @@ function readCardPins() {
 }
 
 function writeCardPins(map) {
+  if (!canUseStorage()) {
+    return;
+  }
+
   localStorage.setItem(CARD_PINS_KEY, JSON.stringify(map));
 }
 
@@ -159,6 +183,10 @@ export function getLocalCardPin(cardId) {
 }
 
 export function clearSession() {
+  if (!canUseStorage()) {
+    return;
+  }
+
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
@@ -193,6 +221,10 @@ export function persistSession(payload) {
   }
 
   if (!accessToken) {
+    return false;
+  }
+
+  if (!canUseStorage()) {
     return false;
   }
 

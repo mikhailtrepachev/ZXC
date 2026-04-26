@@ -1,57 +1,44 @@
-//TODO: DODELAT'
 import * as signalR from "@microsoft/signalr";
-import { getAccessToken } from "./auth.js"; // Укажите правильный путь к вашему файлу из контекста
+import { getAccessToken } from "../auth/session";
 
 let connection = null;
 
 export async function startNotificationSocket(onNotificationReceived) {
-  // Если соединение уже есть, не создаем второе
   if (connection) return;
 
   const token = getAccessToken();
   if (!token) {
-    console.warn("Нет токена доступа. Веб-сокет не запущен.");
+    console.warn("Notification socket was not started because there is no access token.");
     return;
   }
 
-  // 1. Настраиваем подключение
   connection = new signalR.HubConnectionBuilder()
-    // Укажите ВАШ реальный URL до бэкенда (например http://localhost:8080)
-    .withUrl("http://localhost:8080/hubs/notifications", {
-      // Это самое важное! Передаем токен для [Authorize] на бэкенде
-      accessTokenFactory: () => getAccessToken() 
+    .withUrl("/hubs/notifications", {
+      accessTokenFactory: () => getAccessToken(),
     })
-    // Автоматически переподключаться, если сервер моргнул
-    .withAutomaticReconnect() 
+    .withAutomaticReconnect()
     .build();
 
-  // 2. Слушаем событие, которое мы отправляем с бэкенда ("ReceiveNotification")
   connection.on("ReceiveNotification", (message) => {
-    console.log("🔔 Получено PUSH уведомление:", message);
-    
-    // Передаем сообщение в UI (React/Vue компонент)
     if (typeof onNotificationReceived === "function") {
       onNotificationReceived(message);
     }
   });
 
-  // 3. Запускаем соединение
   try {
     await connection.start();
-    console.log("✅ SignalR подключен! Ожидаем уведомления...");
-  } catch (err) {
-    console.error("❌ Ошибка подключения SignalR: ", err);
+  } catch (error) {
+    console.error("SignalR connection failed:", error);
     connection = null;
-    
-    // Пробуем переподключиться через 5 секунд, если бэкенд еще спит
     setTimeout(() => startNotificationSocket(onNotificationReceived), 5000);
   }
 }
 
 export function stopNotificationSocket() {
-  if (connection) {
-    connection.stop();
-    connection = null;
-    console.log("🛑 SignalR отключен.");
+  if (!connection) {
+    return;
   }
+
+  connection.stop();
+  connection = null;
 }
