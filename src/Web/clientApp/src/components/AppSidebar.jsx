@@ -10,6 +10,7 @@ import {
   Landmark,
   LayoutDashboard,
   LogOut,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   Send,
@@ -62,6 +63,7 @@ const platformItems = [
   { title: "Cards", href: "/cards", icon: CreditCard },
   { title: "Loans", href: "/loans", icon: WalletCards },
   { title: "Payments", href: "/payments", icon: Send },
+  { title: "News", href: "/news", icon: Newspaper },
   { title: "Stocks", href: "/stocks", icon: TrendingUp },
 ];
 
