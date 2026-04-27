@@ -2,6 +2,7 @@ const ACCESS_TOKEN_KEY = "zxc_access_token";
 const REFRESH_TOKEN_KEY = "zxc_refresh_token";
 const USER_PROFILES_KEY = "zxc_user_profiles";
 const CARD_PINS_KEY = "zxc_card_pins";
+const AUTH_CHANGED_EVENT = "zxc-auth-changed";
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -45,12 +46,29 @@ function isPayloadExpired(payload) {
   return exp <= nowInSeconds;
 }
 
+function notifyAuthChanged() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  }
+}
+
 export function getAccessToken() {
   if (!canUseStorage()) {
     return null;
   }
 
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+  if (!token) {
+    return null;
+  }
+
+  const payload = decodeJwtPayload(token);
+  if (!payload || isPayloadExpired(payload)) {
+    clearSession();
+    return null;
+  }
+
+  return token;
 }
 
 function normalizeEmail(value) {
@@ -189,6 +207,7 @@ export function clearSession() {
 
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  notifyAuthChanged();
 }
 
 export function persistSession(payload) {
@@ -228,6 +247,12 @@ export function persistSession(payload) {
     return false;
   }
 
+  const tokenPayload = decodeJwtPayload(accessToken);
+  if (!tokenPayload || isPayloadExpired(tokenPayload)) {
+    clearSession();
+    return false;
+  }
+
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
 
   if (refreshToken) {
@@ -236,6 +261,7 @@ export function persistSession(payload) {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
+  notifyAuthChanged();
   return true;
 }
 
@@ -304,6 +330,7 @@ export async function isAuthenticated() {
 
   const payload = decodeJwtPayload(token);
   if (!payload || isPayloadExpired(payload)) {
+    clearSession();
     return false;
   }
 
@@ -326,14 +353,33 @@ export async function isAuthenticated() {
       if (response.ok) {
         return true;
       }
+
+      if (response.status === 401 || response.status === 403) {
+        clearSession();
+        return false;
+      }
     }
 
-    return true;
+    return false;
   } catch {
-    return true;
+    return false;
   }
 }
 
 export async function logoutUser() {
+  const token = getAccessToken();
+
+  if (token) {
+    await fetch("/api/Clients/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }).catch(() => null);
+  }
+
   clearSession();
 }
+
+export { AUTH_CHANGED_EVENT };

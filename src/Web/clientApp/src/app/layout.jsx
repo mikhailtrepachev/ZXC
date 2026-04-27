@@ -3,6 +3,7 @@ import AppShell from "../components/AppShell";
 import { Noto_Sans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { TooltipProvider } from "../components/ui/tooltip";
 
 const notoSans = Noto_Sans({subsets:['latin'],variable:'--font-sans'});
 
@@ -16,7 +17,9 @@ export default function RootLayout({ children }) {
     <html lang="cs" suppressHydrationWarning className={cn("font-sans", notoSans.variable)}>
       <body>
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <TooltipProvider>
+            <AppShell>{children}</AppShell>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

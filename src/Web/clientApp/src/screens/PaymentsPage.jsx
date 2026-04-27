@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "../routing";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Textarea } from "../components/ui/textarea";
 import { PageScaffold, StateMessage } from "../components/PageScaffold";
 import {
   currencyCodeFromName,
@@ -30,6 +28,44 @@ function mapAccountForTransfer(rawItem) {
   };
 }
 
+function accountTail(accountNumber) {
+  const value = String(accountNumber || "");
+  return value ? value.slice(-4) : "----";
+}
+
+function accountDisplayName(account) {
+  if (!account) {
+    return "--";
+  }
+
+  const label = account.label || `${account.type || "Bank"} account`;
+  return `${label} (*${accountTail(account.accountNumber)}) - ${formatMoney(account.balance, account.currency)}`;
+}
+
+function digitsOnly(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function composeRecipientAccountNumber(accountNumber, bankCode) {
+  return `${digitsOnly(accountNumber)}${digitsOnly(bankCode)}`.trim();
+}
+
+function formatBankAccount(value) {
+  const digits = digitsOnly(value);
+  if (!digits) {
+    return "--";
+  }
+
+  return digits.replace(/(.{4})/g, "$1 ").trim();
+}
+
+function formatArrivalDate() {
+  return `Today, ${new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date())}`;
+}
+
 export default function PaymentsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -38,28 +74,38 @@ export default function PaymentsPage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [fromAccountNumber, setFromAccountNumber] = useState("");
   const [toAccountNumber, setToAccountNumber] = useState("");
+  const [recipientBankCode, setRecipientBankCode] = useState("");
+  const [recipientPreview, setRecipientPreview] = useState(null);
+  const [recipientError, setRecipientError] = useState("");
+  const [recipientLoading, setRecipientLoading] = useState(false);
   const [amount, setAmount] = useState("");
   const [transferMessage, setTransferMessage] = useState("");
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [isRecipientLoading, setIsRecipientLoading] = useState(false);
-  const [recipientPreview, setRecipientPreview] = useState(null);
-  const [pendingTransfer, setPendingTransfer] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
-  const [confirmError, setConfirmError] = useState("");
 
-  const accounts = useMemo(() => extractAccountList(profile).map(mapAccountForTransfer).filter((account) => Boolean(account.accountNumber)), [profile]);
+  const accounts = useMemo(
+    () => extractAccountList(profile).map(mapAccountForTransfer).filter((account) => Boolean(account.accountNumber)),
+    [profile],
+  );
   const activeAccounts = useMemo(() => accounts.filter((account) => !account.isFrozen), [accounts]);
   const selectedFromAccount = useMemo(
     () => activeAccounts.find((account) => account.accountNumber === fromAccountNumber) || null,
     [activeAccounts, fromAccountNumber],
   );
+  const recipientAccountNumber = useMemo(
+    () => composeRecipientAccountNumber(toAccountNumber, recipientBankCode),
+    [recipientBankCode, toAccountNumber],
+  );
+  const amountValue = Number(amount);
+  const normalizedAmount = Number.isFinite(amountValue) && amountValue > 0 ? amountValue : 0;
+  const transferFee = 0;
+  const totalAmount = normalizedAmount + transferFee;
   const selectedCurrencyName = selectedFromAccount?.currency || "CZK";
   const selectedCurrencyCode = currencyCodeFromName(selectedCurrencyName);
   const preferredFromAccount = String(searchParams.get("from") || "").trim();
   const dailyLimit = Number(pick(profile, "dailyTransferLimit", "DailyTransferLimit")) || 0;
-  const internetLimit = Number(pick(profile, "internetPaymentLimit", "InternetPaymentLimit")) || 0;
+  const estimatedArrival = useMemo(() => formatArrivalDate(), []);
 
   const loadProfile = async () => {
     setProfileError("");
@@ -73,14 +119,14 @@ export default function PaymentsPage() {
       });
 
       if (!response.ok) {
-        setProfileError(await readErrorMessage(response, "Could not load profile."));
+        setProfileError(await readErrorMessage(response, "Could not load connected accounts."));
         setProfile(null);
         return;
       }
 
       setProfile(await response.json().catch(() => null));
     } catch {
-      setProfileError("Could not load profile.");
+      setProfileError("Could not load connected accounts.");
       setProfile(null);
     } finally {
       setProfileLoading(false);
@@ -109,123 +155,119 @@ export default function PaymentsPage() {
     }
   }, [activeAccounts, fromAccountNumber, preferredFromAccount]);
 
-  const validateTransferDraft = () => {
-    setSubmitError("");
-    setSubmitSuccess("");
+  useEffect(() => {
+    setRecipientPreview(null);
+    setRecipientError("");
+    setRecipientLoading(false);
 
-    const normalizedFromAccount = fromAccountNumber.trim();
-    const normalizedToAccount = toAccountNumber.trim();
-    const numericAmount = Number(amount);
-    const normalizedMessage = transferMessage.trim();
-    const senderAccount = activeAccounts.find((account) => account.accountNumber === normalizedFromAccount);
-
-    if (!/^\d{10,30}$/.test(normalizedFromAccount)) {
-      setSubmitError("Select a valid sender account.");
-      return null;
+    if (!recipientAccountNumber || recipientAccountNumber.length < 8) {
+      return undefined;
     }
 
-    if (!senderAccount) {
-      setSubmitError("Selected sender account is unavailable.");
-      return null;
+    if (selectedFromAccount?.accountNumber === recipientAccountNumber) {
+      setRecipientError("Choose a different recipient account.");
+      return undefined;
     }
 
-    if (!/^\d{10,30}$/.test(normalizedToAccount)) {
-      setSubmitError("Enter a valid recipient account number.");
-      return null;
-    }
+    let isCancelled = false;
+    const timeoutId = setTimeout(async () => {
+      setRecipientLoading(true);
 
-    if (normalizedFromAccount === normalizedToAccount) {
-      setSubmitError("Transfer to the same account is not allowed.");
-      return null;
-    }
+      try {
+        const response = await fetch(`/api/Transaction/recipient/${encodeURIComponent(recipientAccountNumber)}`, {
+          method: "GET",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
 
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setSubmitError("Amount must be positive.");
-      return null;
-    }
+        if (!response.ok) {
+          const message = await readErrorMessage(response, "Recipient account was not found.");
+          if (!isCancelled) {
+            setRecipientError(message);
+          }
+          return;
+        }
 
-    if (numericAmount > senderAccount.balance) {
-      setSubmitError("Insufficient balance.");
-      return null;
-    }
-
-    if (dailyLimit > 0 && numericAmount > dailyLimit) {
-      setSubmitError(`Amount exceeds daily limit ${formatMoney(dailyLimit, selectedCurrencyName)}.`);
-      return null;
-    }
-
-    if (normalizedMessage.length > 140) {
-      setSubmitError("Message can have at most 140 characters.");
-      return null;
-    }
-
-    return {
-      fromAccountNumber: normalizedFromAccount,
-      toAccountNumber: normalizedToAccount,
-      amount: numericAmount,
-      message: normalizedMessage,
-      senderCurrency: senderAccount.currency,
-    };
-  };
-
-  const loadRecipientPreview = async (accountNumber) => {
-    try {
-      const response = await fetch(`/api/Transaction/recipient/${encodeURIComponent(accountNumber)}`, {
-        method: "GET",
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
-
-      if (response.ok) {
         const payload = await response.json().catch(() => null);
-        if (payload && typeof payload === "object") {
-          return payload;
+        if (!isCancelled) {
+          setRecipientPreview(payload);
+        }
+      } catch {
+        if (!isCancelled) {
+          setRecipientError("Could not verify recipient account.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setRecipientLoading(false);
         }
       }
+    }, 350);
 
-      if (response.status === 404) {
-        return { holderFullName: "Account holder was not found", accountNumber };
-      }
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [recipientAccountNumber, selectedFromAccount?.accountNumber]);
 
-      setConfirmError(await readErrorMessage(response, "Could not verify recipient."));
-    } catch {
-      setConfirmError("Could not verify recipient.");
-    }
-
-    return { holderFullName: "Account holder was not found", accountNumber };
-  };
-
-  const handleOpenConfirm = async (event) => {
-    event.preventDefault();
-    const draft = validateTransferDraft();
-    if (!draft) {
-      return;
-    }
-
-    setPendingTransfer(draft);
+  const resetTransfer = () => {
+    setAmount("");
+    setToAccountNumber("");
+    setRecipientBankCode("");
+    setTransferMessage("");
     setRecipientPreview(null);
-    setConfirmError("");
-    setIsRecipientLoading(true);
-    setIsConfirmModalOpen(true);
-    setRecipientPreview(await loadRecipientPreview(draft.toAccountNumber));
-    setIsRecipientLoading(false);
-  };
-
-  const closeConfirmModal = () => {
-    if (!isSubmitting) {
-      setIsConfirmModalOpen(false);
-      setConfirmError("");
-    }
-  };
-
-  const handleConfirmTransfer = async () => {
-    if (!pendingTransfer) {
-      return;
-    }
-
-    setConfirmError("");
+    setRecipientError("");
     setSubmitError("");
     setSubmitSuccess("");
+  };
+
+  const validateTransfer = () => {
+    setSubmitError("");
+    setSubmitSuccess("");
+
+    if (!selectedFromAccount) {
+      return "Select a sender account.";
+    }
+
+    if (!recipientAccountNumber) {
+      return "Enter a recipient bank account.";
+    }
+
+    if (selectedFromAccount.accountNumber === recipientAccountNumber) {
+      return "Choose a different recipient account.";
+    }
+
+    if (recipientLoading) {
+      return "Wait until recipient account verification is finished.";
+    }
+
+    if (recipientError || !recipientPreview) {
+      return recipientError || "Recipient account was not found.";
+    }
+
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      return "Enter a positive transfer amount.";
+    }
+
+    if (amountValue > selectedFromAccount.balance) {
+      return "Insufficient balance.";
+    }
+
+    if (dailyLimit > 0 && amountValue > dailyLimit) {
+      return `Amount exceeds daily limit ${formatMoney(dailyLimit, selectedCurrencyName)}.`;
+    }
+
+    return "";
+  };
+
+  const handleConfirmTransfer = async (event) => {
+    event.preventDefault();
+
+    const validationError = validateTransfer();
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -234,28 +276,23 @@ export default function PaymentsPage() {
         credentials: "include",
         headers: getAuthHeaders(true),
         body: JSON.stringify({
-          fromAccountNumber: pendingTransfer.fromAccountNumber,
-          toAccountNumber: pendingTransfer.toAccountNumber,
-          amount: pendingTransfer.amount,
-          message: pendingTransfer.message,
+          fromAccountNumber: selectedFromAccount.accountNumber,
+          toAccountNumber: recipientAccountNumber,
+          amount: amountValue,
+          message: String(transferMessage || "").trim() || "Bank transfer",
         }),
       });
 
       if (!response.ok) {
-        setConfirmError(await readErrorMessage(response, "Transfer failed."));
+        setSubmitError(await readErrorMessage(response, "Transfer failed."));
         return;
       }
 
       setSubmitSuccess("Transfer was sent.");
-      setToAccountNumber("");
       setAmount("");
-      setTransferMessage("");
-      setIsConfirmModalOpen(false);
-      setPendingTransfer(null);
-      setRecipientPreview(null);
       await loadProfile();
     } catch {
-      setConfirmError("Transfer failed.");
+      setSubmitError("Transfer failed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -264,7 +301,7 @@ export default function PaymentsPage() {
   return (
     <PageScaffold
       title="Payments"
-      description="Send money with recipient verification and a final confirmation step."
+      description="Move money from a connected ZXC Bank account to a verified bank account."
       actions={
         <Button variant="outline" onClick={() => navigate("/accounts")}>
           <ArrowLeft className="size-4" />
@@ -272,52 +309,139 @@ export default function PaymentsPage() {
         </Button>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>New transfer</CardTitle>
-            <CardDescription>Review all details before money leaves the sender account.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="grid gap-5" onSubmit={handleOpenConfirm}>
+      <div className="flex justify-center">
+        <Card className="w-full max-w-md border bg-card shadow-sm">
+          <CardContent className="p-8">
+            <form className="grid gap-7" onSubmit={handleConfirmTransfer}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h2 className="font-heading text-2xl font-semibold uppercase tracking-wider">Transfer funds</h2>
+                  <p className="text-sm text-muted-foreground">Send money to a verified bank account.</p>
+                </div>
+                <Button type="button" variant="ghost" size="icon-sm" onClick={resetTransfer} aria-label="Reset transfer">
+                  <X className="size-4" />
+                </Button>
+              </div>
+
+              {profileError && <StateMessage type="error">{profileError}</StateMessage>}
+              {!profileLoading && activeAccounts.length < 1 && (
+                <StateMessage type="warning">You need an active account to transfer funds.</StateMessage>
+              )}
+
+              <div className="grid gap-2">
+                <Label htmlFor="paymentAmount">Amount to transfer</Label>
+                <div className="relative">
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    {selectedCurrencyCode === "USD" ? "$" : selectedCurrencyCode}
+                  </span>
+                  <Input
+                    id="paymentAmount"
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                    placeholder="1,200.00"
+                    className="h-11 border-x-0 border-t-0 pl-10 text-lg shadow-none focus-visible:ring-0"
+                    disabled={profileLoading || activeAccounts.length < 1 || isSubmitting}
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-2">
                 <Label>From account</Label>
-                <Select value={fromAccountNumber} onValueChange={setFromAccountNumber}>
-                  <SelectTrigger>
+                <Select value={fromAccountNumber} onValueChange={setFromAccountNumber} disabled={profileLoading || isSubmitting}>
+                  <SelectTrigger className="h-11 border-x-0 border-t-0 px-0 shadow-none focus:ring-0">
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
                   <SelectContent>
                     {activeAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.accountNumber}>
-                        {account.accountNumber} - {formatMoney(account.balance, account.currency)}
+                        {accountDisplayName(account)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="toAccount">Recipient account</Label>
-                <Input id="toAccount" value={toAccountNumber} onChange={(event) => setToAccountNumber(event.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="40817123456789012345" />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="paymentAmount">Amount</Label>
-                <div className="relative">
-                  <Input id="paymentAmount" type="number" min="1" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="1000" className="pr-16" />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{selectedCurrencyCode}</span>
+              <div className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-[1fr_6.5rem]">
+                  <div className="grid gap-2">
+                    <Label htmlFor="recipientAccount">To account</Label>
+                    <Input
+                      id="recipientAccount"
+                      inputMode="numeric"
+                      value={toAccountNumber}
+                      onChange={(event) => setToAccountNumber(event.target.value.replace(/[^\d\s-]/g, ""))}
+                      placeholder="2481781000000000"
+                      className="h-11 border-x-0 border-t-0 text-lg shadow-none focus-visible:ring-0"
+                      disabled={profileLoading || isSubmitting}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="recipientBankCode">Bank code</Label>
+                    <Input
+                      id="recipientBankCode"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={recipientBankCode}
+                      onChange={(event) => setRecipientBankCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="0002"
+                      className="h-11 border-x-0 border-t-0 text-lg shadow-none focus-visible:ring-0"
+                      disabled={profileLoading || isSubmitting}
+                    />
+                  </div>
                 </div>
+
+                {(recipientAccountNumber || recipientLoading || recipientError || recipientPreview) && (
+                  <div className="grid gap-2 bg-muted/40 p-3 text-sm">
+                    <p className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Account</span>
+                      <strong className="break-all text-right">{formatBankAccount(recipientAccountNumber)}</strong>
+                    </p>
+                    {recipientLoading && <p className="text-muted-foreground">Checking recipient...</p>}
+                    {recipientPreview && (
+                      <p className="flex justify-between gap-4 border-t pt-2">
+                        <span className="text-muted-foreground">Recipient</span>
+                        <strong className="text-right">{recipientPreview.holderFullName || "--"}</strong>
+                      </p>
+                    )}
+                    {recipientError && <p className="border-t pt-2 text-destructive">{recipientError}</p>}
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="transferMessage">Message</Label>
-                <Textarea id="transferMessage" rows={3} maxLength={140} value={transferMessage} onChange={(event) => setTransferMessage(event.target.value)} placeholder="Optional message" />
-                <p className="text-xs text-muted-foreground">{transferMessage.length}/140</p>
+                <Input
+                  id="transferMessage"
+                  maxLength={140}
+                  value={transferMessage}
+                  onChange={(event) => setTransferMessage(event.target.value)}
+                  placeholder="Payment note"
+                  className="h-11 border-x-0 border-t-0 shadow-none focus-visible:ring-0"
+                  disabled={isSubmitting}
+                />
               </div>
 
-              <Button type="submit" disabled={activeAccounts.length === 0 || isSubmitting}>
+              <div className="grid gap-3 bg-muted/40 p-4 text-sm">
+                <p className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Estimated arrival</span>
+                  <strong>{estimatedArrival}</strong>
+                </p>
+                <p className="flex justify-between gap-4 border-t pt-3">
+                  <span className="text-muted-foreground">Transaction fee</span>
+                  <strong>{formatMoney(transferFee, selectedCurrencyName, 2)}</strong>
+                </p>
+                <p className="flex justify-between gap-4 border-t pt-3">
+                  <span>Total amount</span>
+                  <strong>{formatMoney(totalAmount, selectedCurrencyName, 2)}</strong>
+                </p>
+              </div>
+
+              <Button type="submit" disabled={profileLoading || activeAccounts.length < 1 || recipientLoading || isSubmitting}>
                 <Send className="size-4" />
-                Continue
+                {isSubmitting ? "Sending..." : "Confirm transfer"}
               </Button>
 
               {submitError && <StateMessage type="error">{submitError}</StateMessage>}
@@ -325,89 +449,7 @@ export default function PaymentsPage() {
             </form>
           </CardContent>
         </Card>
-
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Limits</CardTitle>
-              <CardDescription>Current transfer limits for this profile.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 text-sm">
-              {profileLoading && <p className="text-muted-foreground">Loading limits...</p>}
-              {!profileLoading && profileError && <StateMessage type="error">{profileError}</StateMessage>}
-              {!profileLoading && !profileError && (
-                <>
-                  <p className="flex justify-between">
-                    <span className="text-muted-foreground">Daily transfer</span>
-                    <strong>{formatMoney(dailyLimit, selectedCurrencyName)}</strong>
-                  </p>
-                  <p className="flex justify-between">
-                    <span className="text-muted-foreground">Internet payments</span>
-                    <strong>{formatMoney(internetLimit, selectedCurrencyName)}</strong>
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Templates</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {[500, 1000, 5000].map((value) => (
-                <Button key={value} type="button" variant="outline" onClick={() => setAmount(String(value))}>
-                  {formatMoney(value, selectedCurrencyName)}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
       </div>
-
-      <Dialog open={isConfirmModalOpen} onOpenChange={(open) => (open ? setIsConfirmModalOpen(true) : closeConfirmModal())}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Review transfer</DialogTitle>
-            <DialogDescription>Confirm the recipient and amount before sending.</DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3 rounded-lg border p-4 text-sm">
-            <p className="flex justify-between gap-4">
-              <span className="text-muted-foreground">From</span>
-              <strong className="break-all text-right">{pendingTransfer?.fromAccountNumber || "--"}</strong>
-            </p>
-            <p className="flex justify-between gap-4">
-              <span className="text-muted-foreground">To</span>
-              <strong className="break-all text-right">{pendingTransfer?.toAccountNumber || "--"}</strong>
-            </p>
-            <p className="rounded-md bg-muted p-3">
-              {isRecipientLoading ? "Loading recipient..." : recipientPreview?.holderFullName || "Account holder was not found"}
-            </p>
-            <p className="flex justify-between">
-              <span className="text-muted-foreground">Amount</span>
-              <strong>{formatMoney(pendingTransfer?.amount || 0, pendingTransfer?.senderCurrency || "CZK")}</strong>
-            </p>
-            {pendingTransfer?.message && (
-              <p className="grid gap-1">
-                <span className="text-muted-foreground">Message</span>
-                <strong>{pendingTransfer.message}</strong>
-              </p>
-            )}
-          </div>
-
-          {confirmError && <StateMessage type="error">{confirmError}</StateMessage>}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={closeConfirmModal} disabled={isSubmitting}>
-              Back
-            </Button>
-            <Button onClick={handleConfirmTransfer} disabled={isSubmitting}>
-              {isSubmitting ? "Sending..." : "Send transfer"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageScaffold>
   );
 }

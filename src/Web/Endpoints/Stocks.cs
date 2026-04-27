@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using ZxcBank.Application.Stocks.Queries.GetStockQuote;
 using ZxcBank.Application.Stocks.Queries.GetStocks;
+using ZxcBank.Application.Stocks.Queries.GetPortfolio;
 using ZxcBank.Application.Stocks.Commands.BuyStock;
 
 namespace ZxcBank.Web.Endpoints;
@@ -16,11 +17,14 @@ public class Stocks : EndpointGroupBase
     public override void Map(RouteGroupBuilder group)
     {
         group.RequireAuthorization()
-            .MapGet(GetStockQuote, "{ticker}");
-        
-        group.RequireAuthorization()
             .MapGet(GetStocksList, "list");
-        
+
+        group.RequireAuthorization()
+            .MapGet(GetPortfolio, "portfolio");
+
+        group.RequireAuthorization()
+            .MapGet(GetStockQuote, "{ticker}");
+
         group.RequireAuthorization()     
             .MapPost(BuyStock, "buy");
     }
@@ -35,6 +39,11 @@ public class Stocks : EndpointGroupBase
     {
         GetStocksQuery query = new GetStocksQuery(pageNumber, pageSize);
         return await sender.Send(query);
+    }
+
+    public async Task<List<PortfolioItemDto>> GetPortfolio(ISender sender)
+    {
+        return await sender.Send(new GetPortfolioQuery());
     }
 
     public async Task<int> BuyStock(ISender sender, [FromBody] BuyStockCommand command)

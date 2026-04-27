@@ -1,5 +1,6 @@
 ﻿**/.dockerignore
 **/.env
+**/.next
 **/.git
 **/.gitignore
 **/.project
@@ -23,3 +24,11 @@
 **/values.dev.yaml
 LICENSE
 README.md
+.config
+.dotnet
+.idea
+artifacts
+node_modules
+src/Web/ClientApp/.next
+src/Web/ClientApp/node_modules
+ZXC-dev

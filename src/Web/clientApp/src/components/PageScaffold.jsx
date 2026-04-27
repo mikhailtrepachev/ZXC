@@ -4,7 +4,7 @@ import { Card, CardContent } from "./ui/card";
 
 export function PageScaffold({ title, description, actions, children, className }) {
   return (
-    <main className={cn("min-h-[calc(100vh-8rem)] bg-muted/30", className)}>
+    <main className={cn("flex-1 bg-muted/30", className)}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">

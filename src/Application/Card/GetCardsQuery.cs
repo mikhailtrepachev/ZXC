@@ -23,22 +23,27 @@ public class GetCardsQueryHandler : IRequestHandler<GetCardsQuery, List<CardDto>
         var userId = _currentUser.Id;
 
         // Ищем счет и сразу карты
-        var account = await _context.Accounts
+        var accounts = await _context.Accounts
             .Include(a => a.Cards)
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.OwnerId == userId, cancellationToken);
+            .Where(a => a.OwnerId == userId)
+            .ToListAsync(cancellationToken);
 
-        if (account == null) return new List<CardDto>();
+        if (accounts.Count == 0) return new List<CardDto>();
 
-        return account.Cards.Select(c => new CardDto
-        {
-            Id = c.Id,
-            MaskedNumber = c.CardNumber,
-            HolderName = c.CardHolderName,
-            ExpiryDate = c.ExpiryDate,
-            Cvv = c.Cvv,
-            IsVirtual = c.IsVirtual,
-            IsActive = c.IsActive
-        }).ToList();
+        return accounts
+            .SelectMany(account => account.Cards.Select(c => new CardDto
+            {
+                Id = c.Id,
+                MaskedNumber = c.CardNumber,
+                HolderName = c.CardHolderName,
+                ExpiryDate = c.ExpiryDate,
+                Cvv = c.Cvv,
+                AccountNumber = account.AccountNumber,
+                IsVirtual = c.IsVirtual,
+                IsActive = c.IsActive
+            }))
+            .OrderBy(c => c.Id)
+            .ToList();
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Eye, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CalendarDays, CreditCard, Eye, KeyRound, Landmark, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
 import {
   getCurrentUserFromToken,
   getLocalCardPin,
@@ -10,10 +10,13 @@ import {
 import { useNavigate, useParams } from "../routing";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Progress } from "../components/ui/progress";
+import { Separator } from "../components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { PageScaffold, StateMessage } from "../components/PageScaffold";
 import {
@@ -26,10 +29,10 @@ import {
 } from "../lib/bank";
 
 const tabs = [
-  { id: "transactions", label: "Transactions" },
-  { id: "security", label: "Security" },
-  { id: "limits", label: "Limits" },
-  { id: "profile", label: "Profile" },
+  { id: "transactions", label: "Transactions", icon: ReceiptText },
+  { id: "security", label: "Security", icon: KeyRound },
+  { id: "limits", label: "Limits", icon: ShieldCheck },
+  { id: "profile", label: "Profile", icon: UserRound },
 ];
 
 const CARD_LIMITS_STORAGE_KEY = "zxc_cards_limits";
@@ -39,6 +42,25 @@ function formatCountdown(secondsLeft) {
   const minutes = Math.floor(safe / 60);
   const seconds = safe % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function digitsOnly(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function formatCardNumber(value) {
+  const digits = digitsOnly(value);
+  return digits ? digits.replace(/(.{4})/g, "$1 ").trim() : "**** **** **** ****";
+}
+
+function maskCardNumber(value) {
+  const digits = digitsOnly(value);
+  return digits ? `**** **** **** ${digits.slice(-4)}` : "**** **** **** ****";
+}
+
+function formatBankAccount(value) {
+  const digits = digitsOnly(value);
+  return digits ? digits.replace(/(.{4})/g, "$1 ").trim() : "--";
 }
 
 export default function CardDetailsPage() {
@@ -217,7 +239,7 @@ export default function CardDetailsPage() {
     const localPin = getLocalCardPin(card.id);
 
     return [
-      { label: "Card number", value: isSensitiveVisible && fullCardNumber ? fullCardNumber : card.maskedNumber || "--" },
+      { label: "Card number", value: isSensitiveVisible && fullCardNumber ? formatCardNumber(fullCardNumber) : maskCardNumber(fullCardNumber || card.maskedNumber) },
       { label: "Valid until", value: card.expiryDate || "--" },
       { label: "CVC", value: isSensitiveVisible ? card.cvv || "--" : "***" },
       { label: "PIN", value: isSensitiveVisible ? localPin || "Not stored locally" : "****" },
@@ -234,7 +256,7 @@ export default function CardDetailsPage() {
       { label: "Type", value: card.isVirtual ? "Virtual" : "Plastic" },
       { label: "Status", value: card.isActive ? "Active" : "Blocked by bank" },
       { label: "Card ID", value: String(card.id) },
-      { label: "Bank account", value: card.accountNumber || "--" },
+      { label: "Bank account", value: formatBankAccount(card.accountNumber) },
     ];
   }, [card]);
 
@@ -318,12 +340,10 @@ export default function CardDetailsPage() {
     return (
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
-          <Card key={item.label} className="py-4">
-            <CardContent className="grid gap-1 px-4">
-              <p className="text-sm text-muted-foreground">{item.label}</p>
-              <p className="font-medium break-all">{item.value}</p>
-            </CardContent>
-          </Card>
+          <div key={item.label} className="grid gap-1 border bg-muted/30 p-4">
+            <p className="text-sm text-muted-foreground">{item.label}</p>
+            <p className="font-medium break-all">{item.value}</p>
+          </div>
         ))}
       </div>
     );
@@ -385,16 +405,14 @@ export default function CardDetailsPage() {
             const percent = Math.round((limit.used / limit.max) * 100);
 
             return (
-              <div key={limit.name} className="rounded-lg border p-4">
+              <div key={limit.name} className="border bg-muted/20 p-4">
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="font-medium">{limit.name}</span>
                   <span className="text-muted-foreground">
                     {formatMoney(limit.used)} / {formatMoney(limit.max)}
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <span className="block h-2 rounded-full bg-primary" style={{ width: `${Math.min(percent, 100)}%` }} />
-                </div>
+                <Progress value={Math.min(percent, 100)} />
               </div>
             );
           })}
@@ -408,7 +426,7 @@ export default function CardDetailsPage() {
   return (
     <PageScaffold
       title="Card details"
-      description={card?.maskedNumber || "Card profile and security controls"}
+      description={card ? maskCardNumber(card.maskedNumber) : "Card profile and security controls"}
       actions={
         <Button variant="outline" onClick={() => navigate("/cards")}>
           <ArrowLeft className="size-4" />
@@ -420,40 +438,80 @@ export default function CardDetailsPage() {
       {!isCardLoading && error && <StateMessage type="error">{error}</StateMessage>}
 
       {!isCardLoading && !error && card && (
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-slate-950 text-white">
-              <div className="mb-12 flex items-center justify-between">
-                <span className="rounded-md bg-white/10 px-3 py-1 text-xs">{card.isVirtual ? "Virtual" : "Plastic"}</span>
-                <ShieldCheck className="size-5 opacity-80" />
+        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+          <Card className="overflow-hidden p-0">
+            <div className="relative min-h-60 overflow-hidden bg-zinc-950 p-7 text-white">
+              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(20,184,166,0.24),transparent_42%,rgba(245,158,11,0.18))]" />
+              <div className="relative flex items-center justify-between">
+                <Badge className="bg-white/10 px-3 py-1 text-white">{card.isVirtual ? "Virtual" : "Plastic"}</Badge>
+                <ShieldCheck className="size-5 text-white/75" />
               </div>
-              <CardTitle className="font-mono text-2xl tracking-wide">{card.maskedNumber || "**** **** **** ****"}</CardTitle>
-              <CardDescription className="text-white/70">
-                {resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 pt-6">
-              <Badge variant={card.isActive ? "secondary" : "destructive"} className="w-fit">
-                {card.isActive ? "Active" : "Blocked"}
-              </Badge>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <span className="text-muted-foreground">Expires</span>
-                <span className="text-right font-medium">{card.expiryDate || "--"}</span>
-                <span className="text-muted-foreground">Account</span>
-                <span className="text-right font-medium break-all">{card.accountNumber || "--"}</span>
+              <div className="relative mt-10 grid gap-5">
+                <div className="flex items-center justify-between">
+                  <span className="grid size-10 place-items-center border border-white/30 bg-white/15">
+                    <CreditCard className="size-5" />
+                  </span>
+                  <Landmark className="size-6 text-white/70" />
+                </div>
+                <p className="font-mono text-2xl font-semibold tracking-normal text-balance">
+                  {isSensitiveVisible ? formatCardNumber(card.maskedNumber) : maskCardNumber(card.maskedNumber)}
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-xs uppercase tracking-normal text-white/60">
+                  <span>
+                    Holder
+                    <strong className="mt-1 block truncate text-sm tracking-normal text-white">
+                      {resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--")}
+                    </strong>
+                  </span>
+                  <span className="text-right">
+                    Expires
+                    <strong className="mt-1 block text-sm tracking-normal text-white">{card.expiryDate || "--"}</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <CardContent className="grid gap-4 py-6">
+              <div className="flex items-center justify-between gap-4">
+                <Badge variant={card.isActive ? "secondary" : "destructive"}>{card.isActive ? "Active" : "Blocked"}</Badge>
+                <span className="text-sm text-muted-foreground">{card.isVirtual ? "Digital issue" : "Physical issue"}</span>
+              </div>
+              <Separator />
+              <div className="grid gap-3 text-sm">
+                <p className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-muted-foreground">
+                    <CalendarDays className="size-4" />
+                    Valid until
+                  </span>
+                  <strong>{card.expiryDate || "--"}</strong>
+                </p>
+                <p className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-muted-foreground">
+                    <Landmark className="size-4" />
+                    Account
+                  </span>
+                  <strong className="break-all text-right">{formatBankAccount(card.accountNumber)}</strong>
+                </p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <div className="flex flex-wrap gap-2">
-                {tabs.map((tab) => (
-                  <Button key={tab.id} variant={activeTab === tab.id ? "default" : "outline"} size="sm" onClick={() => setActiveTab(tab.id)}>
-                    {tab.label}
-                  </Button>
-                ))}
-              </div>
+            <CardHeader className="gap-4">
+              <CardTitle>Card controls</CardTitle>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="h-auto w-full flex-wrap justify-start bg-transparent p-0">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+
+                    return (
+                      <TabsTrigger key={tab.id} value={tab.id} className="border">
+                        <Icon className="size-4" />
+                        {tab.label}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
             </CardHeader>
             <CardContent>{renderTab()}</CardContent>
           </Card>

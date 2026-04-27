@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, LockKeyhole, Mail } from "lucide-react";
+import { Building2, LockKeyhole, LogIn, Mail, UserPlus } from "lucide-react";
 import { hasRole, persistSession } from "../auth/session";
 import { useNavigate } from "../routing";
 import { Button } from "../components/ui/button";
@@ -244,7 +244,12 @@ export default function LoginPage() {
 
       clearFailedAttempts(normalizedEmail);
       const payload = await response.text().catch(() => "");
-      persistSession(payload);
+      const saved = persistSession(payload);
+      if (!saved) {
+        setError("Login response did not contain a valid session token.");
+        return;
+      }
+
       navigate(hasRole("Administrator") ? "/admin" : "/accounts", { replace: true });
     } catch {
       setError("Login failed. Try again.");
@@ -254,84 +259,97 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-[calc(100vh-8rem)] bg-muted/30 px-4 py-10">
-      <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[1fr_420px]">
-        <section className="hidden flex-col justify-between rounded-lg border bg-card p-8 shadow-sm lg:flex">
-          <div className="space-y-5">
-            <div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Building2 className="size-6" />
-            </div>
-            <div className="space-y-3">
-              <h1 className="max-w-xl text-4xl font-semibold tracking-tight">Secure banking</h1>
-              <p className="max-w-lg text-muted-foreground">
-                Access accounts, cards, payments, notifications, and admin workflows from one responsive interface.
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">ZXC Bank Internet Banking</p>
-        </section>
+    <main className="flex flex-1 items-start bg-muted/30 px-4 py-10">
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="mb-6 flex justify-end gap-2">
+          <Button variant="outline" type="button" onClick={() => navigate("/login")}>
+            <LogIn className="size-4" />
+            Login
+          </Button>
+          <Button type="button" onClick={() => navigate("/register")}>
+            <UserPlus className="size-4" />
+            Open account
+          </Button>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign in</CardTitle>
-            <CardDescription>Use your ZXC Bank credentials to continue.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
-              <div className="grid gap-2">
-                <Label htmlFor="login-email">Email</Label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="user@email.com"
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    inputMode="email"
-                    maxLength={MAX_EMAIL_LENGTH}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+          <section className="hidden flex-col justify-between rounded-lg border bg-card p-8 shadow-sm lg:flex">
+            <div className="space-y-5">
+              <div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Building2 className="size-6" />
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="login-password">Password</Label>
-                <div className="relative">
-                  <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="********"
-                    autoComplete="current-password"
-                    maxLength={MAX_PASSWORD_LENGTH}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+              <div className="space-y-3">
+                <h1 className="max-w-xl text-4xl font-semibold tracking-tight">Secure banking</h1>
+                <p className="max-w-lg text-muted-foreground">
+                  Access accounts, cards, payments, notifications, and admin workflows from one responsive interface.
+                </p>
               </div>
-
-              <Button type="submit" disabled={isSubmitting || isLocked} className="w-full">
-                {isSubmitting ? "Signing in..." : isLocked ? `Locked (${formatRemainingTime(remainingLockoutSeconds)})` : "Sign in"}
-              </Button>
-            </form>
-
-            <div className="mt-4 grid gap-3">
-              {lockoutMessage && <StateMessage type="warning">{lockoutMessage}</StateMessage>}
-              {!lockoutMessage && error && <StateMessage type="error">{error}</StateMessage>}
-              <p className="text-center text-sm text-muted-foreground">
-                No account?{" "}
-                <button className="font-medium text-primary hover:underline" type="button" onClick={() => navigate("/register")}>
-                  Create one
-                </button>
-              </p>
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-sm text-muted-foreground">ZXC Bank Internet Banking</p>
+          </section>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sign in</CardTitle>
+              <CardDescription>Use your ZXC Bank credentials to continue.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
+                <div className="grid gap-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="user@email.com"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      inputMode="email"
+                      maxLength={MAX_EMAIL_LENGTH}
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <div className="relative">
+                    <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="login-password"
+                      type="password"
+                      placeholder="********"
+                      autoComplete="current-password"
+                      maxLength={MAX_PASSWORD_LENGTH}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={isSubmitting || isLocked} className="w-full cursor-pointer">
+                  {isSubmitting ? "Signing in..." : isLocked ? `Locked (${formatRemainingTime(remainingLockoutSeconds)})` : "Sign in"}
+                </Button>
+              </form>
+
+              <div className="mt-4 grid gap-3">
+                {lockoutMessage && <StateMessage type="warning">{lockoutMessage}</StateMessage>}
+                {!lockoutMessage && error && <StateMessage type="error">{error}</StateMessage>}
+                <p className="text-center text-sm text-muted-foreground">
+                  No account?{" "}
+                  <button className="font-medium text-primary hover:underline cursor-pointer" type="button" onClick={() => navigate("/register")}>
+                    Create one
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </main>
   );

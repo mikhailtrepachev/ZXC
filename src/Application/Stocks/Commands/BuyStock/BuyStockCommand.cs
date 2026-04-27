@@ -44,8 +44,19 @@ public class BuyStockCommandHandler : IRequestHandler<BuyStockCommand, int>
             throw new UnauthorizedAccessException("User is not authenticated");
         }
 
+        if (request.Quantity <= 0)
+        {
+            throw new Exception("Quantity must be positive.");
+        }
+
+        string tickerName = request.TickerName.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(tickerName))
+        {
+            throw new Exception("Ticker is required.");
+        }
+
         _logger.LogInformation("User {UserId} is attempting to buy {Quantity} of {TickerName} using Account {AccountId}", 
-            userId, request.Quantity, request.TickerName, request.AccountId);
+            userId, request.Quantity, tickerName, request.AccountId);
 
         Domain.Entities.Account? account = await _context.Accounts
             .FirstOrDefaultAsync(a => a.Id == request.AccountId && a.OwnerId == userId, cancellationToken);
@@ -57,12 +68,12 @@ public class BuyStockCommandHandler : IRequestHandler<BuyStockCommand, int>
         }
 
         Stock? stock = await _context.Stocks
-            .FirstOrDefaultAsync(s => s.TickerName == request.TickerName, cancellationToken);
+            .FirstOrDefaultAsync(s => s.TickerName == tickerName, cancellationToken);
 
         if (stock == null)
         {
-            _logger.LogWarning("BuyStock failed: Stock ticker {TickerName} not found", request.TickerName);
-            throw new Exception($"Stock {request.TickerName} not found.");
+            _logger.LogWarning("BuyStock failed: Stock ticker {TickerName} not found", tickerName);
+            throw new Exception($"Stock {tickerName} not found.");
         }
 
         decimal totalCost = stock.Price * request.Quantity;
@@ -76,7 +87,7 @@ public class BuyStockCommandHandler : IRequestHandler<BuyStockCommand, int>
         account.Balance -= totalCost;
 
         Portfolio? portfolioItem = await _context.Portfolios
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.TickerName == request.TickerName, cancellationToken);
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.TickerName == tickerName, cancellationToken);
 
         if (portfolioItem != null)
         {
@@ -101,17 +112,17 @@ public class BuyStockCommandHandler : IRequestHandler<BuyStockCommand, int>
         Domain.Entities.Transaction transaction = new Domain.Entities.Transaction
         {
             Amount = totalCost,
-            FromAccountId = account.Id.ToString(),
-            ToAccountId = account.Id.ToString(),
+            FromAccountId = account.AccountNumber,
+            ToAccountId = $"STOCK:{stock.TickerName}",
             Status = TransactionStatus.Approved,
-            Description = $"Buy {request.Quantity} of {request.TickerName}"
+            Description = $"Buy {request.Quantity} of {stock.TickerName}"
         };
         _context.Transactions.Add(transaction);
 
         await _context.SaveChangesAsync(cancellationToken);
         
         _logger.LogInformation("BuyStock success: User {UserId} bought {Quantity} of {TickerName}. Portfolio ID: {PortfolioId}", 
-            userId, request.Quantity, request.TickerName, portfolioItem.Id);
+            userId, request.Quantity, stock.TickerName, portfolioItem.Id);
 
         string cacheKey = $"Portfolio_{userId}";
         await _cacheService.RemoveAsync(cacheKey, cancellationToken);
@@ -119,13 +130,20 @@ public class BuyStockCommandHandler : IRequestHandler<BuyStockCommand, int>
         StockBoughtEvent stockEvent = new StockBoughtEvent
         {
             UserId = userId,
-            TickerName = request.TickerName,
+            TickerName = stock.TickerName,
             Quantity = request.Quantity,
             TotalCost = totalCost,
             PurchasedAt = DateTime.UtcNow
         };
 
-        await _eventPublisher.PublishAsync(stockEvent, cancellationToken);
+        try
+        {
+            await _eventPublisher.PublishAsync(stockEvent, cancellationToken);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "BuyStock completed but event publishing failed for {TickerName}", stock.TickerName);
+        }
 
         return portfolioItem.Id;
     }
