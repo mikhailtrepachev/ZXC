@@ -443,15 +443,15 @@ export default function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="group-data-[collapsible=icon]:pt-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="ZXC Bank">
+            <SidebarMenuButton size="lg" asChild tooltip="ZXC Bank" className="group-data-[collapsible=icon]:justify-center">
               <Link to="/accounts" className="no-underline">
                 <span className="flex size-8 items-center justify-center bg-primary text-primary-foreground">
                   <Building2 className="size-4" />
                 </span>
-                <span className="grid min-w-0 flex-1">
+                <span className="grid min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-semibold">ZXC Bank</span>
                   <span className="truncate text-xs text-sidebar-foreground/70">Internet Banking</span>
                 </span>
@@ -600,9 +600,9 @@ export default function AppSidebar() {
             <DropdownMenu>
               <SidebarMenuItem>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton size="lg" tooltip={cabinetLabel}>
+                  <SidebarMenuButton size="lg" tooltip={cabinetLabel} className="group-data-[collapsible=icon]:justify-center">
                     <UserRound />
-                    <span className="grid min-w-0 flex-1">
+                    <span className="grid min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                       <span className="truncate font-medium">{cabinetLabel}</span>
                       <span className="truncate text-xs text-sidebar-foreground/70">User profile</span>
                     </span>
