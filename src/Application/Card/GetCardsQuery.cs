@@ -41,7 +41,9 @@ public class GetCardsQueryHandler : IRequestHandler<GetCardsQuery, List<CardDto>
                 Cvv = c.Cvv,
                 AccountNumber = account.AccountNumber,
                 IsVirtual = c.IsVirtual,
-                IsActive = c.IsActive
+                IsActive = c.IsActive,
+                IsTemporarilyBlocked = c.IsTemporarilyBlocked,
+                DailyLimit = c.DailyLimit
             }))
             .OrderBy(c => c.Id)
             .ToList();

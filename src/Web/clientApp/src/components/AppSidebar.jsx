@@ -50,9 +50,7 @@ import ThemeToggle from "./ThemeToggle";
 import {
   AUTH_CHANGED_EVENT,
   clearSession,
-  getAccessToken,
-  getCurrentUserFromToken,
-  hasRole,
+  fetchSession,
   logoutUser,
   resolveUserDisplayNameByEmail,
 } from "../auth/session";
@@ -87,55 +85,6 @@ function SidebarToggleButton() {
       <span>{isCollapsed ? "Open menu" : "Collapse menu"}</span>
     </SidebarMenuButton>
   );
-}
-
-const FALLBACK_NOTIFICATION_KEY = "zxc_fallback_notifications_read";
-
-function readFallbackStorage() {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const raw = localStorage.getItem(FALLBACK_NOTIFICATION_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeFallbackStorage(value) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  localStorage.setItem(FALLBACK_NOTIFICATION_KEY, JSON.stringify(value));
-}
-
-function normalizeUserKey(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function getFallbackReadIds(userKey) {
-  const normalized = normalizeUserKey(userKey);
-  if (!normalized) {
-    return [];
-  }
-
-  const storage = readFallbackStorage();
-  const value = storage[normalized];
-  return Array.isArray(value) ? value.map((id) => String(id)) : [];
-}
-
-function setFallbackReadIds(userKey, ids) {
-  const normalized = normalizeUserKey(userKey);
-  if (!normalized) {
-    return;
-  }
-
-  const storage = readFallbackStorage();
-  storage[normalized] = Array.from(new Set(ids.map((id) => String(id))));
-  writeFallbackStorage(storage);
 }
 
 function resolveUserLabel(payload) {
@@ -202,9 +151,9 @@ export default function AppSidebar() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState("");
   const [notificationsMode, setNotificationsMode] = useState("none");
+  const [fallbackReadIds, setFallbackReadIds] = useState([]);
 
   const cabinetLabel = currentUser || "Internet banking";
-  const currentUserKey = useMemo(() => normalizeUserKey(getCurrentUserFromToken() || cabinetLabel), [cabinetLabel]);
   const unreadCount = useMemo(
     () => notifications.reduce((sum, item) => sum + (item.isRead ? 0 : 1), 0),
     [notifications],
@@ -217,16 +166,16 @@ export default function AppSidebar() {
     setNotifications([]);
     setNotificationsError("");
     setNotificationsMode("none");
+    setFallbackReadIds([]);
   }, []);
 
   const loadCurrentUser = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) {
+    const session = await fetchSession({ force: true });
+    if (!session?.isAuthenticated) {
       resetAuthState();
       return;
     }
 
-    const headers = { Authorization: `Bearer ${token}` };
     const endpoints = ["/api/Accounts/info", "/api/Users/manage/info"];
 
     for (const endpoint of endpoints) {
@@ -234,7 +183,6 @@ export default function AppSidebar() {
         const response = await fetch(endpoint, {
           method: "GET",
           credentials: "include",
-          headers,
         });
 
         if (response.status === 401 || response.status === 403) {
@@ -249,29 +197,27 @@ export default function AppSidebar() {
 
         const payload = await response.json().catch(() => null);
         const userLabel = resolveUserLabel(payload);
-        const tokenUser = getCurrentUserFromToken();
 
-        setCurrentUser(userLabel || tokenUser || "User");
+        setCurrentUser(userLabel || session.email || "User");
         setIsAuthorized(true);
-        setIsAdmin(hasRole("Administrator"));
+        setIsAdmin(session.roles.some((role) => role.toLowerCase() === "administrator"));
         return;
       } catch {
         // Try the next endpoint.
       }
     }
 
-    clearSession();
-    resetAuthState();
+    setCurrentUser(session.email || "User");
+    setIsAuthorized(true);
+    setIsAdmin(session.roles.some((role) => role.toLowerCase() === "administrator"));
   }, [resetAuthState]);
 
   useEffect(() => {
     loadCurrentUser();
     window.addEventListener(AUTH_CHANGED_EVENT, loadCurrentUser);
-    window.addEventListener("storage", loadCurrentUser);
 
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, loadCurrentUser);
-      window.removeEventListener("storage", loadCurrentUser);
     };
   }, [loadCurrentUser]);
 
@@ -280,29 +226,15 @@ export default function AppSidebar() {
       return;
     }
 
-    const token = getAccessToken();
-    if (!token) {
-      setNotifications([]);
-      setNotificationsMode("none");
-      return;
-    }
-
     setNotificationsLoading(true);
     setNotificationsError("");
-    const headers = { Authorization: `Bearer ${token}` };
-    const listEndpoints = [
-      "/api/Notifications/list",
-      "/api/Notifications",
-      "/api/Notification/list",
-      "/api/Notification",
-    ];
+    const listEndpoints = ["/api/Notifications"];
 
     for (const endpoint of listEndpoints) {
       try {
         const response = await fetch(endpoint, {
           method: "GET",
           credentials: "include",
-          headers,
         });
 
         if (!response.ok) {
@@ -327,7 +259,6 @@ export default function AppSidebar() {
       const fallbackResponse = await fetch("/api/Transaction/history", {
         method: "GET",
         credentials: "include",
-        headers,
       });
 
       if (!fallbackResponse.ok) {
@@ -338,7 +269,7 @@ export default function AppSidebar() {
       }
 
       const payload = await fallbackResponse.json().catch(() => []);
-      const readSet = new Set(getFallbackReadIds(currentUserKey));
+      const readSet = new Set(fallbackReadIds);
       const fallbackItems = Array.isArray(payload)
         ? payload.map((item) => mapTransactionToNotification(item, readSet)).filter(Boolean)
         : [];
@@ -352,7 +283,7 @@ export default function AppSidebar() {
     } finally {
       setNotificationsLoading(false);
     }
-  }, [currentUserKey, isAuthorized]);
+  }, [fallbackReadIds, isAuthorized]);
 
   useEffect(() => {
     if (!isAuthorized) {
@@ -366,7 +297,7 @@ export default function AppSidebar() {
     const intervalId = window.setInterval(loadNotifications, 45000);
 
     return () => window.clearInterval(intervalId);
-  }, [currentUserKey, isAuthorized, loadNotifications]);
+  }, [isAuthorized, loadNotifications]);
 
   const handleMarkNotificationRead = async (notification) => {
     if (!notification || notification.isRead) {
@@ -374,33 +305,26 @@ export default function AppSidebar() {
     }
 
     if (notification.source === "fallback") {
-      const nextReadIds = new Set(getFallbackReadIds(currentUserKey));
+      const nextReadIds = new Set(fallbackReadIds);
       nextReadIds.add(notification.id);
-      setFallbackReadIds(currentUserKey, Array.from(nextReadIds));
+      setFallbackReadIds(Array.from(nextReadIds));
       setNotifications((previous) =>
         previous.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item)),
       );
       return;
     }
 
-    const token = getAccessToken();
-    if (!token || !Number.isFinite(notification.serverId)) {
+    if (!Number.isFinite(notification.serverId)) {
       return;
     }
 
-    const markReadEndpoints = [
-      `/api/Notifications/mark-read/${notification.serverId}`,
-      `/api/Notifications/${notification.serverId}/read`,
-      `/api/Notification/mark-read/${notification.serverId}`,
-      `/api/Notification/${notification.serverId}/read`,
-    ];
+    const markReadEndpoints = [`/api/Notifications/mark-read/${notification.serverId}`];
 
     for (const endpoint of markReadEndpoints) {
       try {
         const response = await fetch(endpoint, {
           method: "POST",
           credentials: "include",
-          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) {
@@ -420,18 +344,29 @@ export default function AppSidebar() {
     }
   };
 
-  const handleMarkAllNotificationsRead = () => {
+  const handleMarkAllNotificationsRead = async () => {
     const unread = notifications.filter((item) => !item.isRead);
     if (unread.length === 0) {
       return;
     }
 
     if (notificationsMode === "fallback") {
-      const nextReadIds = new Set(getFallbackReadIds(currentUserKey));
+      const nextReadIds = new Set(fallbackReadIds);
       for (const item of unread) {
         nextReadIds.add(item.id);
       }
-      setFallbackReadIds(currentUserKey, Array.from(nextReadIds));
+      setFallbackReadIds(Array.from(nextReadIds));
+      setNotifications((previous) => previous.map((item) => ({ ...item, isRead: true })));
+      return;
+    }
+
+    try {
+      await fetch("/api/Notifications/mark-all-read", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Keep the optimistic UI update below; the next refresh will reconcile.
     }
 
     setNotifications((previous) => previous.map((item) => ({ ...item, isRead: true })));

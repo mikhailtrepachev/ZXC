@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CreditCard, Eye, Lock, Plus, RefreshCcw, ShieldCheck, Wallet } from "lucide-react";
-import { resolveUserDisplayNameByEmail, saveLocalCardPin } from "../auth/session";
+import { resolveUserDisplayNameByEmail } from "../auth/session";
 import { useNavigate } from "../routing";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -18,15 +18,10 @@ import {
   formatDate,
   formatMoney,
   getAuthHeaders,
-  parseJsonStorage,
   pick,
   readErrorMessage,
   transactionIsIncome,
-  writeJsonStorage,
 } from "../lib/bank";
-
-const TEMP_BLOCKED_STORAGE_KEY = "zxc_cards_temp_blocked";
-const CARD_LIMITS_STORAGE_KEY = "zxc_cards_limits";
 
 export default function CardsPage() {
   const navigate = useNavigate();
@@ -41,14 +36,6 @@ export default function CardsPage() {
   const [accountOptions, setAccountOptions] = useState([]);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [notice, setNotice] = useState({ type: "", text: "" });
-  const [tempBlockedIds, setTempBlockedIds] = useState(() => {
-    const parsed = parseJsonStorage(TEMP_BLOCKED_STORAGE_KEY, []);
-    return Array.isArray(parsed) ? parsed.map((id) => Number(id)).filter(Number.isFinite) : [];
-  });
-  const [cardLimits, setCardLimits] = useState(() => {
-    const parsed = parseJsonStorage(CARD_LIMITS_STORAGE_KEY, {});
-    return parsed && typeof parsed === "object" ? parsed : {};
-  });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [pinCode, setPinCode] = useState("");
@@ -58,33 +45,25 @@ export default function CardsPage() {
   const [limitInput, setLimitInput] = useState("");
   const [limitError, setLimitError] = useState("");
 
-  useEffect(() => {
-    writeJsonStorage(TEMP_BLOCKED_STORAGE_KEY, tempBlockedIds);
-  }, [tempBlockedIds]);
-
-  useEffect(() => {
-    writeJsonStorage(CARD_LIMITS_STORAGE_KEY, cardLimits);
-  }, [cardLimits]);
-
   const cardsView = useMemo(
     () =>
       cards.map((card) => {
         const id = Number(card.id);
-        const isLocallyBlocked = tempBlockedIds.includes(id);
-        const isActiveUi = Boolean(card.isActive) && !isLocallyBlocked;
+        const isTemporarilyBlocked = Boolean(pick(card, "isTemporarilyBlocked", "IsTemporarilyBlocked"));
+        const isActiveUi = Boolean(card.isActive) && !isTemporarilyBlocked;
 
         return {
           ...card,
           id,
-          isLocallyBlocked,
+          isTemporarilyBlocked,
           isActiveUi,
           holderLabel: resolveUserDisplayNameByEmail(profileEmail, card.holderName),
-          statusLabel: !card.isActive ? "Blocked by bank" : isLocallyBlocked ? "Temporarily blocked" : "Active",
+          statusLabel: !card.isActive ? "Blocked by bank" : isTemporarilyBlocked ? "Temporarily blocked" : "Active",
           cardTypeLabel: card.isVirtual ? "Visa Virtual" : "Visa Classic",
-          limit: Number(cardLimits[id]) || null,
+          limit: Number(pick(card, "dailyLimit", "DailyLimit")) || null,
         };
       }),
-    [cards, tempBlockedIds, cardLimits, profileEmail],
+    [cards, profileEmail],
   );
 
   const selectedCard = useMemo(() => cardsView.find((card) => card.id === selectedCardId) ?? null, [cardsView, selectedCardId]);
@@ -252,12 +231,6 @@ export default function CardsPage() {
         return;
       }
 
-      const createdCardRaw = await response.text().catch(() => "");
-      const createdCardId = Number(String(createdCardRaw).replace(/"/g, "").trim());
-      if (Number.isFinite(createdCardId) && createdCardId > 0) {
-        saveLocalCardPin(createdCardId, pinCode);
-      }
-
       await loadCards();
       setNotice({ type: "success", text: "New card was created." });
       setIsCreateModalOpen(false);
@@ -277,25 +250,40 @@ export default function CardsPage() {
     });
   };
 
-  const handleToggleTemporaryBlock = () => {
+  const handleToggleTemporaryBlock = async () => {
     if (!selectedCard) {
       setNotice({ type: "warning", text: "Select a card first." });
       return;
     }
 
-    if (!selectedCard.isActive && !selectedCard.isLocallyBlocked) {
+    if (!selectedCard.isActive) {
       setNotice({ type: "error", text: "This card is blocked by the bank." });
       return;
     }
 
-    setTempBlockedIds((previous) => {
-      const exists = previous.includes(selectedCard.id);
+    const nextBlockedState = !selectedCard.isTemporarilyBlocked;
+
+    try {
+      const response = await fetch(`/api/Cards/${selectedCard.id}/temporary-block`, {
+        method: "PUT",
+        credentials: "include",
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ blocked: nextBlockedState }),
+      });
+
+      if (!response.ok) {
+        setNotice({ type: "error", text: await readErrorMessage(response, "Could not update card block state.") });
+        return;
+      }
+
+      await loadCards();
       setNotice({
         type: "success",
-        text: exists ? "Card was locally unblocked." : "Card was temporarily blocked on this device.",
+        text: nextBlockedState ? "Card was temporarily blocked." : "Card was unblocked.",
       });
-      return exists ? previous.filter((id) => id !== selectedCard.id) : [...previous, selectedCard.id];
-    });
+    } catch {
+      setNotice({ type: "error", text: "Could not update card block state." });
+    }
   };
 
   const openLimitModal = () => {
@@ -309,7 +297,7 @@ export default function CardsPage() {
     setIsLimitModalOpen(true);
   };
 
-  const saveLimit = () => {
+  const saveLimit = async () => {
     if (!selectedCard) {
       setLimitError("Select a card first.");
       return;
@@ -326,15 +314,31 @@ export default function CardsPage() {
       return;
     }
 
-    setCardLimits((previous) => ({ ...previous, [selectedCard.id]: Math.round(parsed) }));
-    setNotice({ type: "success", text: `Card limit was set to ${formatMoney(parsed)}.` });
-    setIsLimitModalOpen(false);
+    try {
+      const response = await fetch(`/api/Cards/${selectedCard.id}/limit`, {
+        method: "PUT",
+        credentials: "include",
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ dailyLimit: Math.round(parsed) }),
+      });
+
+      if (!response.ok) {
+        setLimitError(await readErrorMessage(response, "Could not save card limit."));
+        return;
+      }
+
+      await loadCards();
+      setNotice({ type: "success", text: `Card limit was set to ${formatMoney(parsed)}.` });
+      setIsLimitModalOpen(false);
+    } catch {
+      setLimitError("Could not save card limit.");
+    }
   };
 
   return (
     <PageScaffold
       title="Cards"
-      description="Manage bank cards, local limits, temporary blocking, and recent card activity."
+      description="Manage bank cards, limits, temporary blocking, and recent card activity."
       actions={
         <>
           <Button variant="outline" onClick={reloadAll}>
@@ -377,7 +381,7 @@ export default function CardsPage() {
         <Card>
           <CardHeader>
             <CardTitle>My cards</CardTitle>
-            <CardDescription>Select a card to manage local actions.</CardDescription>
+            <CardDescription>Select a card to manage card actions.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {isCardsLoading && <p className="text-sm text-muted-foreground">Loading cards...</p>}
@@ -416,7 +420,7 @@ export default function CardsPage() {
           <CardContent className="grid gap-3">
             <Button variant="outline" onClick={openLimitModal}>
               <ShieldCheck className="size-4" />
-              Set local limit
+              Set card limit
             </Button>
             <Button variant="outline" onClick={handleShowPin}>
               <Eye className="size-4" />
@@ -424,7 +428,7 @@ export default function CardsPage() {
             </Button>
             <Button variant="outline" onClick={handleToggleTemporaryBlock}>
               <Lock className="size-4" />
-              {selectedCard?.isActiveUi ? "Temporarily block" : "Unblock locally"}
+              {selectedCard?.isActiveUi ? "Temporarily block" : "Unblock card"}
             </Button>
             <Button variant="outline" onClick={() => setNotice({ type: "success", text: "Card is ready for Apple/Google Pay." })}>
               <Wallet className="size-4" />
@@ -435,7 +439,7 @@ export default function CardsPage() {
               Open details
             </Button>
             <p className="text-sm text-muted-foreground">
-              Local limit: {selectedCard?.limit ? formatMoney(selectedCard.limit) : "not set"}
+              Daily limit: {selectedCard?.limit ? formatMoney(selectedCard.limit) : "not set"}
             </p>
           </CardContent>
         </Card>
@@ -480,7 +484,7 @@ export default function CardsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New credit card</DialogTitle>
-            <DialogDescription>Issue a card to an available account and store the local PIN hint.</DialogDescription>
+            <DialogDescription>Issue a card to an available account. The PIN is sent to the backend and stored as a secure hash.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
             <label className="flex items-start gap-3 text-sm">
@@ -516,7 +520,7 @@ export default function CardsPage() {
       <Dialog open={isLimitModalOpen} onOpenChange={setIsLimitModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Set local card limit</DialogTitle>
+            <DialogTitle>Set card limit</DialogTitle>
             <DialogDescription>{selectedCard ? `Card ${selectedCard.maskedNumber}` : "Select a card first."}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">

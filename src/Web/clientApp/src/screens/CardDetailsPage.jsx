@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, CreditCard, Eye, KeyRound, Landmark, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
 import {
   getCurrentUserFromToken,
-  getLocalCardPin,
   resolveUserDisplayNameByEmail,
 } from "../auth/session";
 import { useNavigate, useParams } from "../routing";
@@ -23,7 +22,6 @@ import {
   formatDate,
   formatMoney,
   getAuthHeaders,
-  parseJsonStorage,
   pick,
   transactionIsIncome,
 } from "../lib/bank";
@@ -34,8 +32,6 @@ const tabs = [
   { id: "limits", label: "Limits", icon: ShieldCheck },
   { id: "profile", label: "Profile", icon: UserRound },
 ];
-
-const CARD_LIMITS_STORAGE_KEY = "zxc_cards_limits";
 
 function formatCountdown(secondsLeft) {
   const safe = Math.max(0, Number(secondsLeft) || 0);
@@ -236,13 +232,11 @@ export default function CardDetailsPage() {
     }
 
     const fullCardNumber = String(pick(card, "cardNumber", "CardNumber", "fullNumber", "FullNumber") || "").trim();
-    const localPin = getLocalCardPin(card.id);
-
     return [
       { label: "Card number", value: isSensitiveVisible && fullCardNumber ? formatCardNumber(fullCardNumber) : maskCardNumber(fullCardNumber || card.maskedNumber) },
       { label: "Valid until", value: card.expiryDate || "--" },
       { label: "CVC", value: isSensitiveVisible ? card.cvv || "--" : "***" },
-      { label: "PIN", value: isSensitiveVisible ? localPin || "Not stored locally" : "****" },
+      { label: "PIN", value: "Stored securely on backend" },
       { label: "Holder", value: resolveUserDisplayNameByEmail(profileEmail, card.holderName || "--") },
     ];
   }, [card, isSensitiveVisible, profileEmail]);
@@ -254,7 +248,10 @@ export default function CardDetailsPage() {
 
     return [
       { label: "Type", value: card.isVirtual ? "Virtual" : "Plastic" },
-      { label: "Status", value: card.isActive ? "Active" : "Blocked by bank" },
+      {
+        label: "Status",
+        value: !card.isActive ? "Blocked by bank" : card.isTemporarilyBlocked ? "Temporarily blocked" : "Active",
+      },
       { label: "Card ID", value: String(card.id) },
       { label: "Bank account", value: formatBankAccount(card.accountNumber) },
     ];
@@ -265,8 +262,7 @@ export default function CardDetailsPage() {
       return [];
     }
 
-    const allLimits = parseJsonStorage(CARD_LIMITS_STORAGE_KEY, {});
-    const localLimit = Number(allLimits?.[card.id]);
+    const dailyLimit = Number(pick(card, "dailyLimit", "DailyLimit"));
     const outgoingSpent = transactions.reduce((sum, tx) => {
       const amount = Number(pick(tx, "amount", "Amount"));
       const isIncome = transactionIsIncome(pick(tx, "type", "Type"));
@@ -277,9 +273,9 @@ export default function CardDetailsPage() {
       return sum + Math.abs(amount);
     }, 0);
 
-    const max = Number.isFinite(localLimit) && localLimit > 0 ? localLimit : 50000;
+    const max = Number.isFinite(dailyLimit) && dailyLimit > 0 ? dailyLimit : 50000;
 
-    return [{ name: "Local daily limit", used: Math.min(outgoingSpent, max), max }];
+    return [{ name: "Daily card limit", used: Math.min(outgoingSpent, max), max }];
   }, [card, transactions]);
 
   const closePasswordModal = () => {
@@ -311,6 +307,7 @@ export default function CardDetailsPage() {
     try {
       const response = await fetch("/api/Clients/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: profileEmail, password }),
       });
@@ -472,7 +469,9 @@ export default function CardDetailsPage() {
             </div>
             <CardContent className="grid gap-4 py-6">
               <div className="flex items-center justify-between gap-4">
-                <Badge variant={card.isActive ? "secondary" : "destructive"}>{card.isActive ? "Active" : "Blocked"}</Badge>
+                <Badge variant={card.isActive && !card.isTemporarilyBlocked ? "secondary" : "destructive"}>
+                  {!card.isActive ? "Blocked" : card.isTemporarilyBlocked ? "Temporarily blocked" : "Active"}
+                </Badge>
                 <span className="text-sm text-muted-foreground">{card.isVirtual ? "Digital issue" : "Physical issue"}</span>
               </div>
               <Separator />

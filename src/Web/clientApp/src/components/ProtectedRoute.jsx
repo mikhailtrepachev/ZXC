@@ -6,6 +6,7 @@ import {
   clearSession,
   hasRole,
   isAuthenticated as checkAuthentication,
+  logoutUser,
 } from "../auth/session";
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -71,9 +72,10 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
       }
 
       timeoutId = window.setTimeout(() => {
-        clearSession();
-        setIsAuthenticated(false);
-        router.replace("/login");
+        logoutUser().finally(() => {
+          setIsAuthenticated(false);
+          router.replace("/login");
+        });
       }, IDLE_TIMEOUT_MS);
     };
 

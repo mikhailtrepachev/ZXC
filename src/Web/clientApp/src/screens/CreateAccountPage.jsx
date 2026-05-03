@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import { getAccessToken, persistSession, saveLocalUserProfile } from "../auth/session";
+import { persistSession } from "../auth/session";
 import { useNavigate } from "../routing";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -150,18 +150,11 @@ function dedupeAddressSuggestions(items) {
 }
 
 async function waitForGeneratedAccounts() {
-  const token = getAccessToken();
-  if (!token) {
-    return false;
-  }
-
   for (let attempt = 0; attempt < 6; attempt += 1) {
     try {
       const response = await fetch("/api/Accounts/info", {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -327,14 +320,9 @@ export default function CreateAccountPage() {
         return;
       }
 
-      saveLocalUserProfile({
-        email: normalized.email,
-        firstName: normalized.firstName,
-        lastName: normalized.lastName,
-      });
-
       const loginResponse = await fetch("/api/Clients/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -345,7 +333,7 @@ export default function CreateAccountPage() {
       });
 
       if (loginResponse.ok) {
-        const payload = await loginResponse.text().catch(() => "");
+        const payload = await loginResponse.json().catch(() => null);
         const saved = persistSession(payload);
         if (!saved) {
           setSuccess("Account was created. Please sign in.");

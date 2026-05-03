@@ -74,6 +74,8 @@ public static class DependencyInjection
         builder.Services.AddHttpClient<ICurrencyService, RealCurrencyService>();
         builder.Services.AddHttpClient<IStockService, YahooFinanceStockService>();
 
+        string jwtCookieName = builder.Configuration["JwtSettings:CookieName"] ?? "zxc_access_token";
+
         builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -132,6 +134,10 @@ public static class DependencyInjection
                         {
                             // Подсовываем токен пайплайну авторизации
                             context.Token = accessToken;
+                        }
+                        else if (context.Request.Cookies.TryGetValue(jwtCookieName, out string? cookieToken))
+                        {
+                            context.Token = cookieToken;
                         }
 
                         return Task.CompletedTask;

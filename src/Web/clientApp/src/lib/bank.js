@@ -1,15 +1,8 @@
-import { getAccessToken } from "../auth/session";
-
 export function getAuthHeaders(includeJson = false) {
   const headers = {};
-  const token = getAccessToken();
 
   if (includeJson) {
     headers["Content-Type"] = "application/json";
-  }
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
   }
 
   return headers;
@@ -181,37 +174,6 @@ export function transactionIsIncome(type) {
   }
 
   return Number(type) === 0;
-}
-
-export function parseJsonStorage(key, fallback) {
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) {
-      return fallback;
-    }
-
-    const parsed = JSON.parse(raw);
-    return parsed ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export function writeJsonStorage(key, value) {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function classForStatus(status) {

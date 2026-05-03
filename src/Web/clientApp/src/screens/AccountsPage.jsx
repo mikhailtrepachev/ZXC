@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, CreditCard, Landmark, Plus, RefreshCcw, Send, ShieldAlert, WalletCards } from "lucide-react";
-import { resolveUserDisplayNameByEmail, saveLocalCardPin } from "../auth/session";
+import { resolveUserDisplayNameByEmail } from "../auth/session";
 import { useNavigate } from "../routing";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -179,12 +179,6 @@ export default function AccountsPage() {
       if (!response.ok) {
         setCreateCardError(await readErrorMessage(response, "Could not create card."));
         return;
-      }
-
-      const createdCardRaw = await response.text().catch(() => "");
-      const createdCardId = Number(String(createdCardRaw).replace(/"/g, "").trim());
-      if (Number.isFinite(createdCardId) && createdCardId > 0) {
-        saveLocalCardPin(createdCardId, pinCode);
       }
 
       await loadCards();

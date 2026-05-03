@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { cn } from "../lib/utils";
-import { extractAccountList, formatDate, getAuthHeaders, parseJsonStorage, pick, readErrorMessage } from "../lib/bank";
+import { extractAccountList, formatDate, getAuthHeaders, pick, readErrorMessage } from "../lib/bank";
 
 const USERS_ENDPOINT_CANDIDATES = [
   "/api/Admins/users",
@@ -34,8 +34,6 @@ const USERS_ENDPOINT_CANDIDATES = [
   "/api/Clients/list",
   "/api/Users/list",
 ];
-const SOFT_DELETE_STORAGE_KEY = "zxc_admin_soft_deleted_accounts";
-
 function mapAccount(rawItem) {
   const id = Number(pick(rawItem, "id", "Id", "accountId", "AccountId"));
   const accountNumber = String(pick(rawItem, "accountNumber", "AccountNumber") || "").trim();
@@ -129,13 +127,7 @@ export default function AdminPage() {
   const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const [softDeletedMap, setSoftDeletedMap] = useState(() => parseJsonStorage(SOFT_DELETE_STORAGE_KEY, {}));
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(SOFT_DELETE_STORAGE_KEY, JSON.stringify(softDeletedMap));
-    }
-  }, [softDeletedMap]);
+  const [softDeletedMap, setSoftDeletedMap] = useState({});
 
   const selectedUser = useMemo(
     () => users.find((user) => user.id === selectedUserId) || null,

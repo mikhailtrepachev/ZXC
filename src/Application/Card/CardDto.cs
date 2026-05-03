@@ -10,4 +10,6 @@ public class CardDto
     public required string AccountNumber { get; set; }
     public bool IsVirtual { get; set; }
     public bool IsActive { get; set; }
+    public bool IsTemporarilyBlocked { get; set; }
+    public decimal DailyLimit { get; set; }
 }

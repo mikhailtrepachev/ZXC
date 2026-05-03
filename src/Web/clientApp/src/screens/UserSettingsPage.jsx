@@ -8,7 +8,6 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { getLocalUserProfile, saveLocalUserProfile } from "../auth/session";
 import { useNavigate } from "../routing";
 import { getAuthHeaders, pick, readErrorMessage } from "../lib/bank";
 import { cn } from "../lib/utils";
@@ -163,15 +162,16 @@ export default function UserSettingsPage() {
   }, [sections]);
 
   useEffect(() => {
-    const local = getLocalUserProfile(profileEmail);
+    const section = sections.find((entry) => entry.data);
+    const backendFirstName = pick(section?.data, "firstName", "FirstName");
+    const backendLastName = pick(section?.data, "lastName", "LastName");
 
-    if (local?.firstName || local?.lastName) {
-      setFirstName(local.firstName || "");
-      setLastName(local.lastName || "");
+    if (backendFirstName || backendLastName) {
+      setFirstName(String(backendFirstName || ""));
+      setLastName(String(backendLastName || ""));
       return;
     }
 
-    const section = sections.find((entry) => entry.data);
     const fullName = pick(section?.data, "fullName", "FullName", "name", "Name");
     const parsed = parseFallbackName(fullName);
 
@@ -188,7 +188,7 @@ export default function UserSettingsPage() {
     [sections],
   );
 
-  const handleSaveDisplayName = () => {
+  const handleSaveDisplayName = async () => {
     setSaveMessage("");
     setSaveError("");
 
@@ -205,18 +205,27 @@ export default function UserSettingsPage() {
       return;
     }
 
-    const saved = saveLocalUserProfile({
-      email: profileEmail,
-      firstName: nextFirstName,
-      lastName: nextLastName,
-    });
+    try {
+      const response = await fetch("/api/Clients/update-info", {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          firstName: nextFirstName,
+          lastName: nextLastName,
+        }),
+      });
 
-    if (!saved) {
+      if (!response.ok) {
+        setSaveError(await readErrorMessage(response, "Ulozeni se nezdarilo."));
+        return;
+      }
+
+      setSaveMessage("Jmeno bylo ulozeno v backendu.");
+      await loadData();
+    } catch {
       setSaveError("Ulozeni se nezdarilo.");
-      return;
     }
-
-    setSaveMessage("Jmeno pro zobrazeni bylo ulozeno.");
   };
 
   return (
@@ -243,7 +252,7 @@ export default function UserSettingsPage() {
             Jmeno v aplikaci
           </CardTitle>
           <CardDescription>
-            Toto nastaveni je lokalni a pouziva se pro zobrazeni v hlavicce a na kartach.
+            Toto nastaveni se uklada v backendu a pouziva se pro zobrazeni v aplikaci.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

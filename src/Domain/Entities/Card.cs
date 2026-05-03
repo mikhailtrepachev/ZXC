@@ -14,5 +14,7 @@ public class Card : BaseAuditableEntity
     public string PinCodeHash { get; set; } = null!;
     
     public bool IsActive { get; set; } = true;
+    public bool IsTemporarilyBlocked { get; set; } = false;
+    public decimal DailyLimit { get; set; } = 50000;
     public bool IsVirtual { get; set; } = false; // Виртуальная или Пластик
 }

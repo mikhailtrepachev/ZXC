@@ -55,6 +55,8 @@ public class GetAccountInfoQueryHandler : IRequestHandler<GetAccountInfoQuery, C
         return new Account.ClientProfileDto
         {
             FullName = fullName,
+            FirstName = client.FirstName,
+            LastName = client.LastName,
             Email = userName ?? string.Empty,
 
             DailyTransferLimit = client.DailyTransferLimit,

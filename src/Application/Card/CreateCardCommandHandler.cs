@@ -13,6 +13,7 @@ public record CreateCardCommand : IRequest<int>
     public required string AccountNumber { get; init; } // <-- Мы будем искать счет по этому номеру
     public required string PinCode { get; init; }
     public bool IsVirtual { get; init; }
+    public decimal? DailyLimit { get; init; }
 }
 
 public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
@@ -42,6 +43,11 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
 
     public async Task<int> Handle(CreateCardCommand request, CancellationToken cancellationToken)
     {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(request.PinCode, "^\\d{4}$"))
+        {
+            throw new Exception("PIN musi mit presne 4 cislice.");
+        }
+
         string? userId = _currentUser.Id;
         if (userId == null) throw new UnauthorizedAccessException();
 
@@ -97,7 +103,9 @@ public class CreateCardCommandHandler : IRequestHandler<CreateCardCommand, int>
             Cvv = new Random().Next(100, 999).ToString(),
             ExpiryDate = DateTime.Now.AddYears(4).ToString("MM/yy"),
             IsVirtual = request.IsVirtual,
-            IsActive = true
+            IsActive = true,
+            IsTemporarilyBlocked = false,
+            DailyLimit = request.DailyLimit is > 0 and <= 500000 ? request.DailyLimit.Value : 50000
         };
 
         // 5. Хешируем ПИН

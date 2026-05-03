@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ZxcBank.Application.Notifications.Commands;
 using ZxcBank.Application.Notifications.Queries.GetNotifications;
 
 namespace ZxcBank.Web.Endpoints;
@@ -13,11 +14,25 @@ public class Notifications : EndpointGroupBase
         // Создаем GET-запрос: /api/Notifications
         // RequireAuthorization() означает, что анонимов не пустим, нужен токен
         app.MapGet(GetNotifications).RequireAuthorization();
+        app.MapPost(MarkRead, "mark-read/{id:int}").RequireAuthorization();
+        app.MapPost(MarkAllRead, "mark-all-read").RequireAuthorization();
     }
 
     public async Task<List<NotificationDto>> GetNotifications(ISender sender)
     {
         // Отправляем запрос через MediatR
         return await sender.Send(new GetNotificationsQuery());
+    }
+
+    public async Task<IResult> MarkRead(ISender sender, int id)
+    {
+        await sender.Send(new MarkNotificationReadCommand(id));
+        return Results.Ok();
+    }
+
+    public async Task<IResult> MarkAllRead(ISender sender)
+    {
+        await sender.Send(new MarkAllNotificationsReadCommand());
+        return Results.Ok();
     }
 }

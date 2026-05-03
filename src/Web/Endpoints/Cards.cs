@@ -2,6 +2,8 @@ using ZxcBank.Application.Cards.Queries.GetCards; // <--- Подключаем Q
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Card;
 using ZxcBank.Application.Cards.Commands.CreateCard;
+using ZxcBank.Application.Cards.Commands.SetCardTemporaryBlock;
+using ZxcBank.Application.Cards.Commands.UpdateCardLimit;
 
 namespace ZxcBank.Web.Endpoints;
 
@@ -16,6 +18,8 @@ public class Cards : EndpointGroupBase
         
         // GET /api/Cards/list
         group.MapGet("list", GetCards);
+        group.MapPut("{id:int}/limit", UpdateLimit);
+        group.MapPut("{id:int}/temporary-block", SetTemporaryBlock);
     }
 
     // Создание карты
@@ -29,4 +33,30 @@ public class Cards : EndpointGroupBase
     {
         return await sender.Send(new GetCardsQuery());
     }
+
+    public async Task<IResult> UpdateLimit(ISender sender, int id, [FromBody] UpdateCardLimitRequest request)
+    {
+        await sender.Send(new UpdateCardLimitCommand
+        {
+            CardId = id,
+            DailyLimit = request.DailyLimit
+        });
+
+        return Results.Ok();
+    }
+
+    public async Task<IResult> SetTemporaryBlock(ISender sender, int id, [FromBody] SetCardTemporaryBlockRequest request)
+    {
+        await sender.Send(new SetCardTemporaryBlockCommand
+        {
+            CardId = id,
+            Blocked = request.Blocked
+        });
+
+        return Results.Ok();
+    }
 }
+
+public record UpdateCardLimitRequest(decimal DailyLimit);
+
+public record SetCardTemporaryBlockRequest(bool Blocked);
