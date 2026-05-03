@@ -1,6 +1,29 @@
 const AUTH_CHANGED_EVENT = "zxc-auth-changed";
+const LEGACY_STORAGE_KEYS = [
+  "zxc_access_token",
+  "zxc_refresh_token",
+  "zxc_user_profiles",
+  "zxc_card_pins",
+  "zxc_cards_temp_blocked",
+  "zxc_cards_limits",
+  "zxc_login_guard_v1",
+  "zxc_admin_soft_deleted_accounts",
+  "zxc_fallback_notifications_read",
+];
 
 let cachedSession = null;
+
+function clearLegacyBrowserStorage() {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+
+  for (const key of LEGACY_STORAGE_KEYS) {
+    window.localStorage.removeItem(key);
+  }
+}
+
+clearLegacyBrowserStorage();
 
 function decodeJwtPayload(token) {
   if (!token || typeof token !== "string") {
