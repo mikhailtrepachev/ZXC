@@ -66,7 +66,9 @@ services:
         environment:
           - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};
           - ConnectionStrings__Redis=redis:6379
-          - ConnectionStrings__RabbitMq=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+          - RabbitMqSettings__Host=rabbitmq
+          - RabbitMqSettings__Username=${RABBITMQ_USER}
+          - RabbitMqSettings__Password=${RABBITMQ_PASSWORD}
           - SmtpSettings__Password=${SMTP_PASSWORD}
           - SEQ_URL=http://seq:80
           - ASPNETCORE_ENVIRONMENT=Development
