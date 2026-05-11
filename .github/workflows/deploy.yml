@@ -21,7 +21,7 @@ jobs:
 
             docker compose down -v --remove-orphans
 
-            docker system prune -a --volumes -f
+            docker system prune -f
             
             echo "DB_USER=${{ secrets.PROD_DB_USER }}" > .env
             echo "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" >> .env
@@ -32,7 +32,5 @@ jobs:
             echo "PGADMIN_PASSWORD=${{ secrets.PROD_PGADMIN_PASSWORD }}" >> .env
             echo "SEQ_PASSWORD=${{ secrets.PROD_SEQ_PASSWORD }}" >> .env
             echo "SMTP_PASSWORD=${{ secrets.PROD_SMTP_PASSWORD }}" >> .env
-
-            docker compose build --no-cache
             
-            docker compose up -d --build --force-recreate
+            docker compose up -d --build --force-recreate --wait
