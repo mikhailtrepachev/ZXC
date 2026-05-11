@@ -3,9 +3,9 @@ services:
       image: postgres:15-alpine
       container_name: database_postgres
       environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: zxcbank_db
+          POSTGRES_USER: ${DB_USER}
+          POSTGRES_PASSWORD: ${DB_PASSWORD}
+          POSTGRES_DB: ${DB_NAME}
       ports:
         - "5432:5432"
       volumes:
@@ -16,8 +16,8 @@ services:
       image: dpage/pgadmin4
       container_name: pgadmin
       environment:
-          PGADMIN_DEFAULT_EMAIL: admin@zxcbank.com
-          PGADMIN_DEFAULT_PASSWORD: admin
+          PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+          PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
       ports:
         - "5050:80"
       depends_on:
@@ -35,8 +35,8 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq_mb
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"   # Порт для подключения из .NET кода
       - "15672:15672" # Порт для веб-интерфейса управления
@@ -53,7 +53,7 @@ services:
     container_name: seq_logs
     environment:
       - ACCEPT_EULA=Y
-      - SEQ_FIRSTRUN_ADMINPASSWORD=DontFuckMyBrainAndTakeThisPassword!10
+      - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_PASSWORD}
     ports:
       - "5341:80"
     restart: unless-stopped
@@ -64,9 +64,10 @@ services:
             dockerfile: Dockerfile.backend
         container_name: backend_server
         environment:
-          - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=zxcbank_db;Username=postgres;Password=postgres;
+          - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};
           - ConnectionStrings__Redis=redis:6379
-          - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672/
+          - ConnectionStrings__RabbitMq=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+          - SmtpSettings__Password=${SMTP_PASSWORD}
           - SEQ_URL=http://seq:80
           - ASPNETCORE_ENVIRONMENT=Development
           - ASPNETCORE_URLS=http://+:8080

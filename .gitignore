@@ -494,3 +494,4 @@ $RECYCLE.BIN/
 
 # GitHub specific (если вы НЕ планируете хранить там экшены или настройки)
 # .github/
+.env
