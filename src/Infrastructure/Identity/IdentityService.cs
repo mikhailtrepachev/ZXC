@@ -120,4 +120,23 @@ public class IdentityService : IIdentityService
 
         return user?.Id;
     }
+
+    public async Task<bool> IsEmailConfirmedAsync(string email)
+    {
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
+        return user?.EmailConfirmed ?? false;
+    }
+
+    public async Task<bool> ConfirmEmailAsync(string email)
+    {
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
+
+        if (user == null) return false;
+
+        user.EmailConfirmed = true;
+        
+        IdentityResult result = await _userManager.UpdateAsync(user);
+        
+        return result.Succeeded;
+    }
 }

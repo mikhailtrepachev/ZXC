@@ -151,13 +151,18 @@ public static class DependencyInjection
 
         });
         
+        // Redis cache service
         builder.Services.AddTransient<ICacheService, RedisCacheService>();
+        
+        // Email sender service
+        builder.Services.AddTransient<IEmailSender, EmailSender>();
         
         builder.Services.AddMassTransit(x =>
         {
             x.AddConsumer<UserLoggedInConsumer>();
             x.AddConsumer<SuspiciousActivityConsumer>();
             x.AddConsumer<TransferMoneyConsumer>();
+            x.AddConsumer<UserRegisteredConsumer>();
             
             x.UsingRabbitMq((context, cfg) =>
             {
@@ -173,6 +178,7 @@ public static class DependencyInjection
             });
         });
         
+        // RabbitMq broker service 
         builder.Services.AddTransient<IEventPublisher, RabbitMqEventPublisher>();
         
         infrastructureLogger.Information("Infrastructure layer successfully registered!");

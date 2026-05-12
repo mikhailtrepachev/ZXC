@@ -3,7 +3,9 @@ using ZxcBank.Domain.Entities;
 using ZxcBank.Domain.Constants;
 using ZxcBank.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ZxcBank.Application.Auth.Events;
 using ZxcBank.Application.Common.Models; // Не забудьте этот using для IRequestHandler
 
 namespace ZxcBank.Application.Auth.Commands;
@@ -29,12 +31,20 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
     private readonly IIdentityService _identityService;
     private readonly IApplicationDbContext _context;
     private readonly ILogger<RegisterClientCommandHandler> _logger;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly ICacheService _cacheService;
+    private readonly IConfiguration _configuration;
 
-    public RegisterClientCommandHandler(IIdentityService identityService, IApplicationDbContext context, ILogger<RegisterClientCommandHandler> logger)
+
+    public RegisterClientCommandHandler(IIdentityService identityService, IApplicationDbContext context, ILogger<RegisterClientCommandHandler> logger,
+        IEventPublisher eventPublisher, ICacheService cacheService, IConfiguration configuration)
     {
         _identityService = identityService;
         _context = context;
         _logger = logger;
+        _eventPublisher = eventPublisher;
+        _cacheService = cacheService;
+        _configuration = configuration;
     }
 
     public async Task<string> Handle(RegisterClientCommand request, CancellationToken cancellationToken)
@@ -79,6 +89,22 @@ public class RegisterClientCommandHandler : IRequestHandler<RegisterClientComman
         _context.Clients.Add(clientEntity);
         
         _logger.LogInformation("User {UserId} registered", userId);
+        
+        // Email confirmation url
+        string frontendUrl = _configuration["AppSettings:FrontendUrl"]?.TrimEnd('/') ?? throw new ArgumentNullException();
+        
+        string token = Guid.NewGuid().ToString();
+        
+        string confirmationLink = $"{frontendUrl}/api/Clients/confirm-email?email={request.Email}&token={token}";
+
+        await _cacheService.SetValueTask(
+            $"email_confirm:{request.Email}",
+            token,
+            TimeSpan.FromHours(24),
+            cancellationToken);
+
+        await _eventPublisher.PublishAsync(
+            new UserRegisteredEvent(request.Email, confirmationLink), cancellationToken);
         
         await _context.SaveChangesAsync(cancellationToken);
 

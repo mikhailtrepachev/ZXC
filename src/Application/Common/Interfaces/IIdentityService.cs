@@ -19,4 +19,8 @@ public interface IIdentityService
     Task<string?> LoginAsync(string email, string password);
     
     Task<string?> GetUserIdByEmailAsync(string email);
+
+    Task<bool> IsEmailConfirmedAsync(string email);
+
+    Task<bool> ConfirmEmailAsync(string email);
 }

@@ -17,6 +17,7 @@ public class Clients : EndpointGroupBase
         group.MapPost("limits", UpdateLimits);
         group.MapGet("session", GetSession).RequireAuthorization();
         group.MapPost("logout", LogoutUser).RequireAuthorization();
+        group.MapGet("confirm-email", ConfirmEmail);
     }
 
     public async Task<string> RegisterClient(ISender sender, [FromBody] RegisterClientCommand command)
@@ -188,6 +189,28 @@ public class Clients : EndpointGroupBase
         }
 
         return string.Empty;
+    }
+    
+    public async Task<IResult> ConfirmEmail(ISender sender, string email, string token)
+    {
+        try
+        {
+            await sender.Send(new ConfirmEmailCommand 
+            { 
+                Email = email, 
+                Token = token 
+            });
+            
+            return Results.Ok(new { message = "Email has been confirmed." });
+        }
+        catch (UnauthorizedAccessException ex) 
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception) 
+        {
+            return Results.BadRequest(new { error = "Error while confirming email." });
+        }
     }
 }
 

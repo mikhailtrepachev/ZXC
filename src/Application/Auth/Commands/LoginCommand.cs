@@ -46,6 +46,14 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, string>
                 "Too many failed login attempts. Please wait 5 minutes before trying again.");
         }
         
+        bool isEmailConfirmed = await _identityService.IsEmailConfirmedAsync(request.Email);
+
+        if (!isEmailConfirmed)
+        {
+            _logger.LogWarning("Email not confirmed: {Email}", request.Email);
+            throw new UnauthorizedAccessException("Email not confirmed. Please check your email for the confirmation link.");
+        }
+        
         string? token = await _identityService.LoginAsync(request.Email, request.Password);
 
         if (token == null)

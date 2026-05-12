@@ -3,9 +3,9 @@ services:
       image: postgres:15-alpine
       container_name: database_postgres
       environment:
-          POSTGRES_USER: ${DB_USER}
-          POSTGRES_PASSWORD: ${DB_PASSWORD}
-          POSTGRES_DB: ${DB_NAME}
+          POSTGRES_USER: ${PROD_DB_USER}
+          POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
+          POSTGRES_DB: ${PROD_DB_NAME}
       ports:
         - "5432:5432"
       volumes:
@@ -16,8 +16,8 @@ services:
       image: dpage/pgadmin4
       container_name: pgadmin
       environment:
-          PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-          PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+          PGADMIN_DEFAULT_EMAIL: ${PROD_PGADMIN_EMAIL}
+          PGADMIN_DEFAULT_PASSWORD: ${PROD_PGADMIN_PASSWORD}
       ports:
         - "5050:80"
       depends_on:
@@ -35,8 +35,8 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq_mb
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${PROD_RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${PROD_RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"   # Порт для подключения из .NET кода
       - "15672:15672" # Порт для веб-интерфейса управления
@@ -53,7 +53,7 @@ services:
     container_name: seq_logs
     environment:
       - ACCEPT_EULA=Y
-      - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_PASSWORD}
+      - SEQ_FIRSTRUN_ADMINPASSWORD=${PROD_SEQ_PASSWORD}
     ports:
       - "5341:80"
     restart: unless-stopped
@@ -64,15 +64,20 @@ services:
             dockerfile: Dockerfile.backend
         container_name: backend_server
         environment:
-          - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};
+          - ConnectionStrings__ZxcBankDb=Host=db;Port=5432;Database=${PROD_DB_NAME};Username=${PROD_DB_USER};Password=${PROD_DB_PASSWORD};
           - ConnectionStrings__Redis=redis:6379
           - RabbitMqSettings__Host=rabbitmq
-          - RabbitMqSettings__Username=${RABBITMQ_USER}
-          - RabbitMqSettings__Password=${RABBITMQ_PASSWORD}
-          - SmtpSettings__Password=${SMTP_PASSWORD}
+          - RabbitMqSettings__Username=${PROD_RABBITMQ_USER}
+          - RabbitMqSettings__Password=${PROD_RABBITMQ_PASSWORD}
+          - SmtpSettings__Host=smtp-relay.brevo.com
+          - SmtpSettings__Port=587
+          - SmtpSettings__Username=${PROD_SMTP_USERNAME}
+          - SmtpSettings__Password=${PROD_SMTP_PASSWORD}
+          - SmtpSettings__From=${PROD_SMTP_FROM}
           - SEQ_URL=http://seq:80
           - ASPNETCORE_ENVIRONMENT=Development
           - ASPNETCORE_URLS=http://+:8080
+          - AppSettings__FrontendUrl=${FRONTEND_URL}
         ports:
           - "8080:8080"
         healthcheck:

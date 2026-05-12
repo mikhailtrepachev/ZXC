@@ -23,14 +23,17 @@ jobs:
 
             docker system prune -f
             
-            echo "DB_USER=${{ secrets.PROD_DB_USER }}" > .env
-            echo "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" >> .env
-            echo "DB_NAME=${{ secrets.PROD_DB_NAME }}" >> .env
-            echo "RABBITMQ_USER=${{ secrets.PROD_RABBITMQ_USER }}" >> .env
-            echo "RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }}" >> .env
-            echo "PGADMIN_EMAIL=${{ secrets.PROD_PGADMIN_EMAIL }}" >> .env
-            echo "PGADMIN_PASSWORD=${{ secrets.PROD_PGADMIN_PASSWORD }}" >> .env
-            echo "SEQ_PASSWORD=${{ secrets.PROD_SEQ_PASSWORD }}" >> .env
-            echo "SMTP_PASSWORD=${{ secrets.PROD_SMTP_PASSWORD }}" >> .env
+            echo "PROD_DB_USER=${{ secrets.PROD_DB_USER }}" > .env
+            echo "PROD_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" >> .env
+            echo "PROD_DB_NAME=${{ secrets.PROD_DB_NAME }}" >> .env
+            echo "PROD_RABBITMQ_USER=${{ secrets.PROD_RABBITMQ_USER }}" >> .env
+            echo "PROD_RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }}" >> .env
+            echo "PROD_PGADMIN_EMAIL=${{ secrets.PROD_PGADMIN_EMAIL }}" >> .env
+            echo "PROD_PGADMIN_PASSWORD=${{ secrets.PROD_PGADMIN_PASSWORD }}" >> .env
+            echo "PROD_SEQ_PASSWORD=${{ secrets.PROD_SEQ_PASSWORD }}" >> .env
+            echo "PROD_SMTP_PASSWORD=${{ secrets.PROD_SMTP_PASSWORD }}" >> .env
+            echo "PROD_SMTP_USERNAME=${{ secrets.PROD_SMTP_USERNAME }}" >> .env
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
+            echo "PROD_SMTP_FROM=${{ secrets.PROD_SMTP_FROM }}" >> .env
             
             docker compose up -d --build --force-recreate --wait

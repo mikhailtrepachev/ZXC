@@ -84,6 +84,7 @@ public class ApplicationDbContextInitialiser
             {
                 UserName = adminEmail,
                 Email = adminEmail,
+                EmailConfirmed = true,
             };
 
             await _userManager.CreateAsync(admin, "Administrator1!");
@@ -110,7 +111,7 @@ public class ApplicationDbContextInitialiser
             var senderEmail = "sender@bank.com";
         if (await _userManager.FindByEmailAsync(senderEmail) == null)
         {
-            var sender = new ApplicationUser { UserName = senderEmail, Email = senderEmail };
+            var sender = new ApplicationUser { UserName = senderEmail, Email = senderEmail, EmailConfirmed = true };
             await _userManager.CreateAsync(sender, "Password123!");
             await _userManager.AddToRoleAsync(sender, Roles.Client);
 
@@ -180,7 +181,7 @@ public class ApplicationDbContextInitialiser
         var receiverEmail = "receiver@bank.com";
         if (await _userManager.FindByEmailAsync(receiverEmail) == null)
         {
-            var receiver = new ApplicationUser { UserName = receiverEmail, Email = receiverEmail };
+            var receiver = new ApplicationUser { UserName = receiverEmail, Email = receiverEmail, EmailConfirmed = true };
             await _userManager.CreateAsync(receiver, "Password123!");
             await _userManager.AddToRoleAsync(receiver, Roles.Client);
 
