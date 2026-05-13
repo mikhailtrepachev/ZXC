@@ -39,7 +39,7 @@ public class RealCurrencyService : ICurrencyService
         string fromCode = MapCurrencyCode(from);
         string toCode = MapCurrencyCode(to);
         
-        decimal baseRate = await GetLiveRateAsync(fromCode, toCode);
+        decimal baseRate = await GetLiveRateInternalAsync(fromCode, toCode);
         
         decimal rateWithMargin = baseRate * BankMarginMultiplier;
         
@@ -48,7 +48,17 @@ public class RealCurrencyService : ICurrencyService
         return Math.Round(convertedAmount, 2, MidpointRounding.ToEven);
     }
     
-    private async Task<decimal> GetLiveRateAsync(string fromCode, string toCode)
+    public async Task<decimal> GetExchangeRateAsync(Currency from, Currency to)
+    {
+        if (from == to) return 1m;
+        
+        string fromCode = MapCurrencyCode(from);
+        string toCode = MapCurrencyCode(to);
+        
+        return await GetLiveRateInternalAsync(fromCode, toCode);
+    }
+    
+    private async Task<decimal> GetLiveRateInternalAsync(string fromCode, string toCode)
     {
         string cacheKey = $"exchange_rate_{fromCode}_{toCode}";
 

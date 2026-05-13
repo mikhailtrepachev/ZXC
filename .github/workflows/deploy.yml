@@ -35,5 +35,6 @@ jobs:
             echo "PROD_SMTP_USERNAME=${{ secrets.PROD_SMTP_USERNAME }}" >> .env
             echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
             echo "PROD_SMTP_FROM=${{ secrets.PROD_SMTP_FROM }}" >> .env
+            echo "FINNHUB_API_KEY=${{ secrets.FINNHUB_API_KEY }}" >> .env
             
             docker compose up -d --build --force-recreate --wait

@@ -5,4 +5,6 @@ namespace ZxcBank.Application.Common.Interfaces;
 public interface ICurrencyService
 {
     Task<decimal> ConvertAsync(decimal amount, Currency fromCurrency, Currency toCurrency);
+
+    Task<decimal> GetExchangeRateAsync(Currency from, Currency to);
 }

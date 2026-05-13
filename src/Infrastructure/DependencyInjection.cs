@@ -73,6 +73,7 @@ public static class DependencyInjection
         builder.Services.AddMemoryCache();
         builder.Services.AddHttpClient<ICurrencyService, RealCurrencyService>();
         builder.Services.AddHttpClient<IStockService, YahooFinanceStockService>();
+        builder.Services.AddHttpClient<IFinancialDataService, FinancialDataService>();
 
         string jwtCookieName = builder.Configuration["JwtSettings:CookieName"] ?? "zxc_access_token";
 

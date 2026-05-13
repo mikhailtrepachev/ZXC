@@ -78,6 +78,7 @@ services:
           - ASPNETCORE_ENVIRONMENT=Development
           - ASPNETCORE_URLS=http://+:8080
           - AppSettings__FrontendUrl=${FRONTEND_URL}
+          - FinnhubSettings__ApiKey=${FINNHUB_API_KEY}
         ports:
           - "8080:8080"
         depends_on:
